@@ -567,9 +567,13 @@ static char *norm_basic_str(const char *src, int srclen, int multiline,
           return 0;
         }
         ch = *sp++;
-        int v = ('0' <= ch && ch <= '9')
-                    ? ch - '0'
-                    : (('A' <= ch && ch <= 'F') ? ch - 'A' + 10 : -1);
+        int v = -1;
+        if ('0' <= ch && ch <= '9')
+          v = ch - '0';
+        else if ('A' <= ch && ch <= 'F')
+          v = ch - 'A' + 10;
+        else if ('a' <= ch && ch <= 'f')
+          v = (ch ^ 0x20) - 'A' + 10;
         if (-1 == v) {
           snprintf(errbuf, errbufsz, "invalid hex chars for \\u or \\U");
           xfree(dst);
@@ -1694,7 +1698,7 @@ static int scan_string(context_t *ctx, char *p, int lineno, int dotisspecial) {
       }
       if (hexreq) {
         hexreq--;
-        if (strchr("0123456789ABCDEF", *p))
+        if (strchr("0123456789ABCDEFabcdef", *p))
           continue;
         return e_syntax(ctx, lineno, "expect hex char");
       }
@@ -1743,7 +1747,7 @@ static int scan_string(context_t *ctx, char *p, int lineno, int dotisspecial) {
       }
       if (hexreq) {
         hexreq--;
-        if (strchr("0123456789ABCDEF", *p))
+        if (strchr("0123456789ABCDEFabcdef", *p))
           continue;
         return e_syntax(ctx, lineno, "expect hex char");
       }
