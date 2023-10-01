@@ -2192,6 +2192,9 @@ int toml_rtod_ex(toml_raw_t src, double *ret_, char *buf, int buflen) {
       // disallow '__'
       if (s[0] == '_')
         return -1;
+      // disallow _e
+      if (s[0] == 'e')
+        return -1;
       // disallow last char '_'
       if (s[0] == 0)
         return -1;
@@ -2199,6 +2202,9 @@ int toml_rtod_ex(toml_raw_t src, double *ret_, char *buf, int buflen) {
     }
     // inf and nan are case-sensitive.
     if (ch == 'I' || ch == 'N' || ch == 'F' || ch == 'A')
+      return -1;
+    // disallow e_
+    if (ch == 'e' && s[0] == '_')
       return -1;
     *p++ = ch;
   }
