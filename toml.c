@@ -29,6 +29,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -2159,6 +2160,7 @@ int toml_rtod_ex(toml_raw_t src, double *ret_, char *buf, int buflen) {
   const char *s = src;
   double dummy;
   double *ret = ret_ ? ret_ : &dummy;
+  bool have_us = false;
 
   /* allow +/- */
   if (s[0] == '+' || s[0] == '-')
@@ -2186,6 +2188,7 @@ int toml_rtod_ex(toml_raw_t src, double *ret_, char *buf, int buflen) {
   while (*s && p < q) {
     int ch = *s++;
     if (ch == '_') {
+      have_us = true;
       // disallow '__'
       if (s[0] == '_')
         return -1;
@@ -2194,6 +2197,9 @@ int toml_rtod_ex(toml_raw_t src, double *ret_, char *buf, int buflen) {
         return -1;
       continue; /* skip _ */
     }
+    // inf and nan are case-sensitive.
+    if (ch == 'I' || ch == 'N' || ch == 'F' || ch == 'A')
+      return -1;
     *p++ = ch;
   }
   if (*s || p == q)
@@ -2206,7 +2212,11 @@ int toml_rtod_ex(toml_raw_t src, double *ret_, char *buf, int buflen) {
   char *endp;
   errno = 0;
   *ret = strtod(buf, &endp);
-  return (errno || *endp) ? -1 : 0;
+  if (errno || *endp)
+    return -1;
+  if (have_us && (isnan(*ret) || isinf(*ret)))
+    return -1;
+  return 0;
 }
 
 int toml_rtod(toml_raw_t src, double *ret_) {
