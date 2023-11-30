@@ -1,62 +1,39 @@
-prefix ?= /usr/local
-HFILES = toml.h
-CFILES = toml.c
-OBJ = $(CFILES:.c=.o)
-EXEC = toml_json toml_cat toml_sample
+CC     = cc
+PREFIX = /usr/local
+CFLAGS = -std=c99 -Wall -Wextra -Wimplicit-fallthrough -fPIC -O2 -g
+
+HDRS   = toml.h
+SRCS   = toml.c
+OBJS   = ${SRCS:.c=.o}
 PCFILE = libtoml.pc
+PROG   = toml2json
+LIB    = libtoml.a
+SOLIB  = libtoml.so.1.0
 
-CFLAGS = -std=c99 -Wall -Wextra -fpic
-LIB_VERSION = 1.0
-LIB = libtoml.a
-LIB_SHARED = libtoml.so.$(LIB_VERSION)
+.PHONY: all clean install check
 
-# to compile for debug: make DEBUG=1
-# to compile for no debug: make
-ifdef DEBUG
-    CFLAGS += -O0 -g
-else
-    CFLAGS += -O2 -DNDEBUG
-endif
+all: ${LIB} ${SOLIB} ${PROG}
 
+*.o: ${HDRS}
+	${CC} ${CFLAGS} -c $<
 
-all: $(LIB) $(LIB_SHARED) $(EXEC)
-
-*.o: $(HFILES)
-
-libtoml.a: toml.o
+libtoml.a: ${OBJS}
 	ar -rcs $@ $^
 
-libtoml.so.$(LIB_VERSION): toml.o
-	$(CC) -shared -o $@ $^
+libtoml.so.1.0: ${OBJS}
+	${CC} ${CFLAGS} -shared -o $@ $^
 
-$(EXEC): $(LIB)
+${PROG}: ${LIB}
 
 install: all
-	install -d ${prefix}/include ${prefix}/lib
-	install toml.h ${prefix}/include
-	install $(LIB) ${prefix}/lib
-	install $(LIB_SHARED) ${prefix}/lib
-ifeq "$(prefix)" "/usr/local"
-ifneq ("$(wildcard $(PCFILE))","")
-	install $(PCFILE) /usr/local/lib/pkgconfig
-endif
-endif
+	install -d ${DESTDIR}${PREFIX}/include ${DESTDIR}${PREFIX}/lib ${DESTDIR}${PREFIX}/lib/pkgconfig
+	install toml.h   ${DESTDIR}${PREFIX}/include
+	install ${LIB}   ${DESTDIR}${PREFIX}/lib
+	install ${SOLIB} ${DESTDIR}${PREFIX}/lib
+	sed 's!%%PREFIX%%!${PREFIX}!' ${PCFILE} >${DESTDIR}${PREFIX}lib/pkgconfig
 
+check: ${PROG}
+	@./test.bash
 
 clean:
-	rm -f *.o $(EXEC) $(LIB) $(LIB_SHARED)
-
-
-format:
-	clang-format -i $(shell find . -name '*.[ch]')
-
-toml-test: all
-	@./toml-test/build.sh
-	@./toml-test/run.sh
-
-check: toml-test
-	@make -C unittest
-	@./unittest/t1
-	./stdex/RUN.sh
-
-.PHONY: all clean install format toml-test check
+	rm -f *.o ${PROG} ${LIB} ${SOLIB}

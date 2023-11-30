@@ -1,18 +1,9 @@
-# tomlc99
+C library for parsing TOML 1.0. Passes all of [TOML test suite].
 
-TOML in c99; v1.0 compliant.
+[TOML test suite]: https://github.com/toml-lang/toml-test
 
-If you are looking for a C++ library, you might try this wrapper: [https://github.com/cktan/tomlcpp](https://github.com/cktan/tomlcpp).
-
-* Compatible with [TOML v1.0.0](https://toml.io/en/v1.0.0).
-* Tested with multiple test suites, including
-[toml-lang/toml-test](https://github.com/toml-lang/toml-test) and
-[iarna/toml-spec-tests](https://github.com/iarna/toml-spec-tests).
-* Provides very simple and intuitive interface.
-
-
-## Usage
-
+Usage
+-----
 Please see the `toml.h` file for details. The following is a simple example that
 parses this config file:
 
