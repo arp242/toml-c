@@ -1,5 +1,4 @@
 #define _POSIX_C_SOURCE 200809L
-#include "toml.h"
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -9,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "toml.h"
 
 #define ALIGN8(sz) (((sz) + 7) & ~7)
 #define calloc(x, y) error - forbidden - use CALLOC instead
@@ -51,38 +52,35 @@ static char *STRNDUP(const char *s, size_t n) {
 // on error.
 // http://stackoverflow.com/questions/6240055/manually-converting-unicode-codepoints-into-utf-8-and-utf-16
 int read_unicode_escape(int64_t code, char buf[6]) {
-	if (0xd800 <= code && code <= 0xdfff) // UTF-16 surrogates
+	if (0xd800 <= code && code <= 0xdfff) /// UTF-16 surrogates
 		return -1;
 	if (0x10FFFF < code)
 		return -1;
-
-	// 0x00000000 - 0x0000007F: 0xxxxxxx
 	if (code < 0)
 		return -1;
-	if (code <= 0x7F) {
+	if (code <= 0x7F) { /// 0x00000000 - 0x0000007F: 0xxxxxxx
 		buf[0] = (unsigned char)code;
 		return 1;
 	}
-
-	if (code <= 0x000007FF) { // 0x00000080 - 0x000007FF: 110xxxxx 10xxxxxx
+	if (code <= 0x000007FF) { /// 0x00000080 - 0x000007FF: 110xxxxx 10xxxxxx
 		buf[0] = (unsigned char)(0xc0 | (code >> 6));
 		buf[1] = (unsigned char)(0x80 | (code & 0x3f));
 		return 2;
 	}
-	if (code <= 0x0000FFFF) { // 0x00000800 - 0x0000FFFF: 1110xxxx 10xxxxxx 10xxxxxx
+	if (code <= 0x0000FFFF) { /// 0x00000800 - 0x0000FFFF: 1110xxxx 10xxxxxx 10xxxxxx
 		buf[0] = (unsigned char)(0xe0 | (code >> 12));
 		buf[1] = (unsigned char)(0x80 | ((code >> 6) & 0x3f));
 		buf[2] = (unsigned char)(0x80 | (code & 0x3f));
 		return 3;
 	}
-	if (code <= 0x001FFFFF) { // 0x00010000 - 0x001FFFFF: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+	if (code <= 0x001FFFFF) { /// 0x00010000 - 0x001FFFFF: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 		buf[0] = (unsigned char)(0xf0 | (code >> 18));
 		buf[1] = (unsigned char)(0x80 | ((code >> 12) & 0x3f));
 		buf[2] = (unsigned char)(0x80 | ((code >> 6) & 0x3f));
 		buf[3] = (unsigned char)(0x80 | (code & 0x3f));
 		return 4;
 	}
-	if (code <= 0x03FFFFFF) { // 0x00200000 - 0x03FFFFFF: 111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+	if (code <= 0x03FFFFFF) { /// 0x00200000 - 0x03FFFFFF: 111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
 		buf[0] = (unsigned char)(0xf8 | (code >> 24));
 		buf[1] = (unsigned char)(0x80 | ((code >> 18) & 0x3f));
 		buf[2] = (unsigned char)(0x80 | ((code >> 12) & 0x3f));
@@ -90,7 +88,7 @@ int read_unicode_escape(int64_t code, char buf[6]) {
 		buf[4] = (unsigned char)(0x80 | (code & 0x3f));
 		return 5;
 	}
-	if (code <= 0x7FFFFFFF) { // 0x04000000 - 0x7FFFFFFF: 1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+	if (code <= 0x7FFFFFFF) { /// 0x04000000 - 0x7FFFFFFF: 1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
 		buf[0] = (unsigned char)(0xfc | (code >> 30));
 		buf[1] = (unsigned char)(0x80 | ((code >> 24) & 0x3f));
 		buf[2] = (unsigned char)(0x80 | ((code >> 18) & 0x3f));
@@ -111,34 +109,34 @@ struct toml_keyval_t {
 
 typedef struct toml_arritem_t toml_arritem_t;
 struct toml_arritem_t {
-	int valtype; /* for value kind: 'i'nt, 'd'ouble, 'b'ool, 's'tring, 't'ime, 'D'ate, 'T'imestamp */
+	int valtype; // for value kind: 'i'nt, 'd'ouble, 'b'ool, 's'tring, 't'ime, 'D'ate, 'T'imestamp
 	char *val;
 	toml_array_t *arr;
 	toml_table_t *tab;
 };
 
 struct toml_array_t {
-	const char *key; /* key to this array */
-	int kind;        /* element kind: 'v'alue, 'a'rray, or 't'able, 'm'ixed */
-	int type;        /* for value kind: 'i'nt, 'd'ouble, 'b'ool, 's'tring, 't'ime, 'D'ate, 'T'imestamp, 'm'ixed */
-	int nitem;       /* number of elements */
+	const char *key; // key to this array
+	int kind;        // element kind: 'v'alue, 'a'rray, or 't'able, 'm'ixed
+	int type;        // for value kind: 'i'nt, 'd'ouble, 'b'ool, 's'tring, 't'ime, 'D'ate, 'T'imestamp, 'm'ixed
+	int nitem;       // number of elements
 	toml_arritem_t *item;
 };
 
 struct toml_table_t {
-	const char *key; /* key to this table */
-	bool implicit;   /* table was created implicitly */
-	bool readonly;   /* no more modification allowed */
+	const char *key; // key to this table
+	bool implicit;   // table was created implicitly
+	bool readonly;   // no more modification allowed
 
-	/* key-values in the table */
+	// key-values in the table
 	int nkval;
 	toml_keyval_t **kval;
 
-	/* arrays in the table */
+	// arrays in the table
 	int narr;
 	toml_array_t **arr;
 
-	/* tables in the table */
+	// tables in the table
 	int ntab;
 	toml_table_t **tab;
 };
@@ -166,7 +164,7 @@ typedef struct token_t token_t;
 struct token_t {
 	tokentype_t tok;
 	int lineno;
-	char *ptr; /* points into context->start */
+	char *ptr; // points into context->start
 	int len;
 	int eof;
 };
@@ -259,17 +257,15 @@ static toml_arritem_t *expand_arritem(toml_arritem_t *p, int n) {
 	return pp;
 }
 
-static char *norm_lit_str(const char *src, int srclen, int multiline, char *errbuf, int errbufsz) {
-	char *dst = 0; /* will write to dst[] and return it */
-	int max = 0;   /* max size of dst[] */
-	int off = 0;   /* cur offset in dst[] */
-	const char *sp = src;
-	const char *sq = src + srclen;
-	int ch;
+static char *norm_lit_str(const char *src, int srclen, bool multiline, bool is_key, char *errbuf, int errbufsz) {
+	const char *sp  = src;
+	const char *sq  = src + srclen;
+	char       *dst = 0; /// will write to dst[] and return it
+	int        max  = 0; /// max size of dst[]
+	int        off  = 0; /// cur offset in dst[]
 
-	/* scan forward on src */
-	for (;;) {
-		if (off >= max - 10) { /* have some slack for misc stuff */
+	for (;;) { /// scan forward on src
+		if (off >= max - 10) { /// have some slack for misc stuff
 			int newmax = max + 50;
 			char *x = expand(dst, max, newmax);
 			if (!x) {
@@ -281,12 +277,17 @@ static char *norm_lit_str(const char *src, int srclen, int multiline, char *errb
 			max = newmax;
 		}
 
-		if (sp >= sq) // finished?
+		if (sp >= sq) /// finished?
 			break;
 
-		ch = *sp++;
-		/* control characters other than tab is not allowed */
-		if ((0 <= ch && ch <= 0x08) || (0x0a <= ch && ch <= 0x1f) || (ch == 0x7f)) {
+		char ch = *sp++;
+		if (is_key && ch == '\n') {
+			xfree(dst);
+			snprintf(errbuf, errbufsz, "literal newlines not allowed in key");
+			return 0;
+		}
+		/// control characters other than tab is not allowed
+		if ((0 <= ch && ch <= 0x08) || (0x0a <= ch && ch <= 0x1f) || ch == 0x7f) {
 			if (!(multiline && (ch == '\r' || ch == '\n'))) {
 				xfree(dst);
 				snprintf(errbuf, errbufsz, "invalid char U+%04x", ch);
@@ -294,8 +295,7 @@ static char *norm_lit_str(const char *src, int srclen, int multiline, char *errb
 			}
 		}
 
-		// a plain copy suffice
-		dst[off++] = ch;
+		dst[off++] = ch; /// a plain copy suffice
 	}
 
 	dst[off++] = 0;
@@ -304,17 +304,16 @@ static char *norm_lit_str(const char *src, int srclen, int multiline, char *errb
 
 /* Convert src to raw unescaped utf-8 string.
  * Returns NULL if error with errmsg in errbuf. */
-static char *norm_basic_str(const char *src, int srclen, int multiline, char *errbuf, int errbufsz) {
-	char *dst = 0; /* will write to dst[] and return it */
-	int max = 0;   /* max size of dst[] */
-	int off = 0;   /* cur offset in dst[] */
-	const char *sp = src;
-	const char *sq = src + srclen;
-	int ch;
+static char *norm_basic_str(const char *src, int srclen, bool multiline, bool is_key, char *errbuf, int errbufsz) {
+	const char *sp  = src;
+	const char *sq  = src + srclen;
+	char       *dst = 0; /// will write to dst[] and return it
+	int        max  = 0; /// max size of dst[]
+	int        off  = 0; /// cur offset in dst[]
 
-	/* scan forward on src */
+	/// scan forward on src
 	for (;;) {
-		if (off >= max - 10) { /* have some slack for misc stuff */
+		if (off >= max - 10) { /// have some slack for misc stuff
 			int newmax = max + 50;
 			char *x = expand(dst, max, newmax);
 			if (!x) {
@@ -326,14 +325,18 @@ static char *norm_basic_str(const char *src, int srclen, int multiline, char *er
 			max = newmax;
 		}
 
-		/* finished? */
-		if (sp >= sq)
+		if (sp >= sq) /// finished?
 			break;
 
-		ch = *sp++;
+		char ch = *sp++;
+		if (is_key && ch == '\n') {
+			xfree(dst);
+			snprintf(errbuf, errbufsz, "literal newlines not allowed in key");
+			return 0;
+		}
 		if (ch != '\\') {
-			/* these chars must be escaped: U+0000 to U+0008, U+000A to U+001F, U+007F */
-			if ((0 <= ch && ch <= 0x08) || (0x0a <= ch && ch <= 0x1f) || (ch == 0x7f)) {
+			/// must be escaped: U+0000 to U+0008, U+000A to U+001F, U+007F
+			if ((0 <= ch && ch <= 0x08) || (0x0a <= ch && ch <= 0x1f) || ch == 0x7f) {
 				if (!(multiline && (ch == '\r' || ch == '\n'))) {
 					xfree(dst);
 					snprintf(errbuf, errbufsz, "invalid char U+%04x", ch);
@@ -341,30 +344,24 @@ static char *norm_basic_str(const char *src, int srclen, int multiline, char *er
 				}
 			}
 
-			dst[off++] = ch; // a plain copy suffice
+			dst[off++] = ch; /// a plain copy suffice
 			continue;
 		}
 
-		/* ch was backslash. we expect the escape char. */
-		if (sp >= sq) {
+		if (sp >= sq) { /// ch was backslash. we expect the escape char.
 			snprintf(errbuf, errbufsz, "last backslash is invalid");
 			xfree(dst);
 			return 0;
 		}
 
-		/* for multi-line, we want to kill line-ending-backslash ... */
-		if (multiline) {
-
-			// if there is only whitespace after the backslash ...
-			if (sp[strspn(sp, " \t\r")] == '\n') {
-				/* skip all the following whitespaces */
-				sp += strspn(sp, " \t\r\n");
+		if (multiline) { /// for multi-line, we want to kill line-ending-backslash.
+			if (sp[strspn(sp, " \t\r")] == '\n') { /// if there is only whitespace after the backslash ...
+				sp += strspn(sp, " \t\r\n"); /// skip all the following whitespaces
 				continue;
 			}
 		}
 
-		/* get the escaped char */
-		ch = *sp++;
+		ch = *sp++; /// get the escaped char
 		switch (ch) {
 			case 'u':
 			case 'U': {
@@ -399,12 +396,12 @@ static char *norm_basic_str(const char *src, int srclen, int multiline, char *er
 				}
 				off += n;
 			}; continue;
-			case 'b': ch = '\b';  break;
-			case 't': ch = '\t';  break;
-			case 'n': ch = '\n';  break;
-			case 'f': ch = '\f';  break;
-			case 'r': ch = '\r';  break;
-			case '"': ch = '"';   break;
+			case 'b':  ch = '\b';  break;
+			case 't':  ch = '\t';  break;
+			case 'n':  ch = '\n';  break;
+			case 'f':  ch = '\f';  break;
+			case 'r':  ch = '\r';  break;
+			case '"':  ch = '"';   break;
 			case '\\': ch = '\\'; break;
 			default:
 				snprintf(errbuf, errbufsz, "illegal escape char \\%c", ch);
@@ -415,67 +412,47 @@ static char *norm_basic_str(const char *src, int srclen, int multiline, char *er
 		dst[off++] = ch;
 	}
 
-	dst[off++] = 0; // Cap with NUL and return it.
+	dst[off++] = 0; /// Cap with NUL and return it.
 	return dst;
 }
 
-/* Normalize a key. Convert all special chars to raw unescaped utf-8 chars. */
+// Normalize a key. Convert all special chars to raw unescaped utf-8 chars.
 static char *normalize_key(context_t *ctx, token_t strtok) {
-	const char *sp = strtok.ptr;
-	const char *sq = strtok.ptr + strtok.len;
-	int lineno = strtok.lineno;
-	char *ret;
-	int ch = *sp;
-	char ebuf[80];
+	const char *sp    = strtok.ptr;
+	const char *sq    = strtok.ptr + strtok.len;
+	int        lineno = strtok.lineno;
+	int        ch     = *sp;
+	char       *ret;
 
-	/* handle quoted string */
+	// Quoted string
 	if (ch == '\'' || ch == '\"') {
-		/* if ''' or """, take 3 chars off front and back. Else, take 1 char off. */
-		int multiline = 0;
-		if (sp[1] == ch && sp[2] == ch) {
+		/// if ''' or """, take 3 chars off front and back. Else, take 1 char off.
+		bool multiline = (sp[1] == ch && sp[2] == ch);
+		if (multiline)
 			sp += 3, sq -= 3;
-			multiline = 1;
-		} else
+		else
 			sp++, sq--;
 
-		if (ch == '\'') {
-			/* for single quote, take it verbatim. */
-			if (!(ret = STRNDUP(sp, sq - sp))) {
-				e_outofmemory(ctx, FLINE);
-				return 0;
-			}
-		} else {
-			/* for double quote, we need to normalize */
-			ret = norm_basic_str(sp, sq - sp, multiline, ebuf, sizeof(ebuf));
-			if (!ret) {
-				e_syntax(ctx, lineno, ebuf);
-				return 0;
-			}
-		}
-
-		/* newlines are not allowed in keys */
-		if (strchr(ret, '\n')) {
-			xfree(ret);
-			e_badkey(ctx, lineno);
+		char ebuf[80];
+		if (ch == '\'')
+			ret = norm_lit_str(sp, sq - sp, multiline, true, ebuf, sizeof(ebuf));
+		else
+			ret = norm_basic_str(sp, sq - sp, multiline, true, ebuf, sizeof(ebuf));
+		if (!ret) {
+			e_syntax(ctx, lineno, ebuf);
 			return 0;
 		}
 		return ret;
 	}
 
-	/* for bare-key allow only this regex: [A-Za-z0-9_-]+ */
-	const char *xp;
-	for (xp = sp; xp != sq; xp++) {
-		int k = *xp;
-		if (isalnum(k))
-			continue;
-		if (k == '_' || k == '-')
+	for (const char *c = sp; c != sq; c++) { /// Bare key: allow: [A-Za-z0-9_-]+
+		if (isalnum(*c) || *c == '_' || *c == '-')
 			continue;
 		e_badkey(ctx, lineno);
 		return 0;
 	}
 
-	/* dup and return it */
-	if (!(ret = STRNDUP(sp, sq - sp))) {
+	if (!(ret = STRNDUP(sp, sq - sp))) { /// dup and return
 		e_outofmemory(ctx, FLINE);
 		return 0;
 	}
@@ -1963,7 +1940,7 @@ int toml_rtod(toml_raw_t src, double *ret_) {
 }
 
 int toml_rtos(toml_raw_t src, char **ret) {
-	int multiline = 0;
+	bool multiline = false;
 	const char *sp;
 	const char *sq;
 
@@ -1980,9 +1957,9 @@ int toml_rtos(toml_raw_t src, char **ret) {
 
 	// triple quotes?
 	if (qchar == src[1] && qchar == src[2]) {
-		multiline = 1;         // triple-quote implies multiline
-		sp = src + 3;          // first char after quote
-		sq = src + srclen - 3; // first char of ending quote
+		multiline = true;      /// triple-quote implies multiline
+		sp = src + 3;          /// first char after quote
+		sq = src + srclen - 3; /// first char of ending quote
 
 		if (!(sp <= sq && sq[0] == qchar && sq[1] == qchar && sq[2] == qchar)) {
 			// last 3 chars in src must be qchar
@@ -2006,11 +1983,10 @@ int toml_rtos(toml_raw_t src, char **ret) {
 	//     sp points to first valid char after quote.
 	//     sq points to one char beyond last valid char.
 	//     string len is (sq - sp).
-	if (qchar == '\'') {
-		*ret = norm_lit_str(sp, sq - sp, multiline, 0, 0);
-	} else {
-		*ret = norm_basic_str(sp, sq - sp, multiline, 0, 0);
-	}
+	if (qchar == '\'')
+		*ret = norm_lit_str(sp, sq - sp, multiline, false, 0, 0);
+	else
+		*ret = norm_basic_str(sp, sq - sp, multiline, false, 0, 0);
 
 	return *ret ? 0 : -1;
 }

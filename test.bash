@@ -14,7 +14,6 @@ if [ ! -f ./toml2json ]; then
 fi
 
 failing=(
-	-skip valid/key/escapes                    # Treats "\n" as invalid because it first replaces escapes and then checks.
 	-skip valid/key/quoted-unicode             # Doesn't print null byte correctly.
 	-skip valid/string/quoted-unicode
 	-skip valid/string/unicode-escape
