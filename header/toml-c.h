@@ -1452,8 +1452,13 @@ static int scan_string(context_t *ctx, char *p, int lineno, bool dotisspecial) {
 			q = strstr(q, "'''");
 			if (q == 0)
 				return e_syntax(ctx, lineno, "unterminated triple-s-quote");
-			while (q[3] == '\'')
+			int i = 0;
+			while (q[3] == '\'') {
+				i++;
+				if (i >= 3)
+					return e_syntax(ctx, lineno, "too many ''' in triple-s-quote");
 				q++;
+			}
 			break;
 		}
 		set_token(ctx, STRING, lineno, orig, q + 3 - orig);
@@ -1471,8 +1476,13 @@ static int scan_string(context_t *ctx, char *p, int lineno, bool dotisspecial) {
 				q++;
 				continue;
 			}
-			while (q[3] == '\"')
+			int i = 0;
+			while (q[3] == '\"') {
+				i++;
+				if (i >= 3)
+					return e_syntax(ctx, lineno, "too many \"\"\" in triple-d-quote");
 				q++;
+			}
 			break;
 		}
 

@@ -14,9 +14,6 @@ if [ ! -f ./toml2json ]; then
 fi
 
 failing=(
-	-skip invalid/string/literal-multiline-quotes-1
-	-skip invalid/string/literal-multiline-quotes-2
-	-skip invalid/string/multiline-quotes-1
 	-skip invalid/inline-table/add             # Appending existing tables
 	-skip invalid/array/extending-table
 	-skip invalid/table/append-with-dotted-keys-1
