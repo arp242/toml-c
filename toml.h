@@ -19,14 +19,14 @@ typedef struct toml_table_t toml_table_t;
 typedef struct toml_array_t toml_array_t;
 typedef struct toml_datum_t toml_datum_t;
 
-// Parse a file. Return a table on success, or 0 otherwise. Caller must
-// toml_free(the-return-value) after use.
+// Parse a file. Return a table on success, or 0 otherwise.
 TOML_EXTERN toml_table_t *toml_parse_file(FILE *fp, char *errbuf, int errbufsz);
 
-// Parse a string containing the full config. Return a table on success, or 0
-// otherwise. Caller must toml_free(the-return-value) after use.
-TOML_EXTERN toml_table_t *toml_parse(char *conf, // NUL terminated, please.
-                                     char *errbuf, int errbufsz);
+// Parse a string containing the full config.
+//
+// Return a table on success, or 0 otherwise.
+// conf needs to be NULL-terminated.
+TOML_EXTERN toml_table_t *toml_parse(char *conf, char *errbuf, int errbufsz);
 
 // Free the table returned by toml_parse() or toml_parse_file(). Once this
 // function is called, any handles accessed through this tab directly or
