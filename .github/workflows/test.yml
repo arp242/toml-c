@@ -11,6 +11,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - run:
+    - run: |
         go install github.com/toml-lang/toml-test/cmd/toml-test@master
         make check
