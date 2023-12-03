@@ -705,12 +705,12 @@ static int valtype(const char *val) {
 		return 'd';
 	if (toml_value_timestamp(val, &ts) == 0) {
 		if (ts.year && ts.hour)
-			return 'T'; /* timestamp */
+			return 'T'; /// timestamp
 		if (ts.year)
-			return 'D'; /* date */
-		return 't';   /* time */
+			return 'D'; /// date
+		return 't';   /// time
 	}
-	return 'u'; /* unknown */
+	return 'u'; /// unknown
 }
 
 /* We are at '[...]' */
@@ -1296,10 +1296,9 @@ static int scan_date(const char *p, int *YY, int *MM, int *DD) {
 }
 
 static int scan_time(const char *p, int *hh, int *mm, int *ss) {
-	int hour, minute, second;
-	hour = scan_digits(p, 2);
-	minute = (hour >= 0 && p[2] == ':') ? scan_digits(p + 3, 2) : -1;
-	second = (minute >= 0 && p[5] == ':') ? scan_digits(p + 6, 2) : -1;
+	int hour = scan_digits(p, 2);
+	int minute = (hour >= 0 && p[2] == ':') ? scan_digits(p + 3, 2) : -1;
+	int second = (minute >= 0 && p[5] == ':') ? scan_digits(p + 6, 2) : -1;
 	if (hh)
 		*hh = hour;
 	if (mm)
@@ -1588,63 +1587,47 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 		return -1;
 
 	const char *p = src_;
-	int must_parse_time = 0;
+	bool must_parse_time = false;
 
 	memset(ret, 0, sizeof(*ret));
 
-	int *year = &ret->__buffer.year;
-	int *month = &ret->__buffer.month;
-	int *day = &ret->__buffer.day;
-	int *hour = &ret->__buffer.hour;
-	int *minute = &ret->__buffer.minute;
-	int *second = &ret->__buffer.second;
-	int *millisec = &ret->__buffer.millisec;
-
-	/* parse date YYYY-MM-DD */
-	if (scan_date(p, year, month, day) == 0) {
-		if (*month < 1 || *day < 1 || *month > 12 || *day > 31)
+	/// YYYY-MM-DD
+	if (scan_date(p, &ret->year, &ret->month, &ret->day) == 0) {
+		if (ret->month < 1 || ret->day < 1 || ret->month > 12 || ret->day > 31)
 			return -1;
-		ret->year = year;
-		ret->month = month;
-		ret->day = day;
+		ret->kind = 'D';
 
 		p += 10;
 		if (*p) {
-			// parse the T or space separator
-			if (*p != 'T' && *p != 't' && *p != ' ')
+			if (*p != 'T' && *p != 't' && *p != ' ') /// T or space
 				return -1;
-			must_parse_time = 1;
+			must_parse_time = true;
 			p++;
 		}
 	}
 
-	/* parse time HH:MM:SS */
-	if (scan_time(p, hour, minute, second) == 0) {
-		if (*second < 0 || *minute < 0 || *hour < 0 || *hour > 23 || *minute > 59 || *second > 60)
+	/// HH:MM:SS
+	if (scan_time(p, &ret->hour, &ret->minute, &ret->second) == 0) {
+		if (ret->second < 0 || ret->minute < 0 || ret->hour < 0 || ret->hour > 23 || ret->minute > 59 || ret->second > 60)
 			return -1;
-		ret->hour = hour;
-		ret->minute = minute;
-		ret->second = second;
+		ret->kind = (ret->kind == 'D' ? 'l' : 't');
 
-		/* optionally, parse millisec */
 		p += 8;
-		if (*p == '.') {
-			p++; /* skip '.' */
+		if (*p == '.') { /// optionally, parse millisec
+			p++; /// skip '.'
 			const char *qq;
-			*millisec = parse_millisec(p, &qq);
-			ret->millisec = millisec;
+			ret->millisec = parse_millisec(p, &qq);
 			p = qq;
 		}
 
-		if (*p) {
-			/* parse and copy Z */
-			char *z = ret->__buffer.z;
+		if (*p) { /// parse and copy Z
+			ret->kind = 'd';
+			char *z = malloc(10);
 			ret->z = z;
 			if (*p == 'Z' || *p == 'z') {
 				*z++ = 'Z';
 				p++;
 				*z = 0;
-
 			} else if (*p == '+' || *p == '-') {
 				*z++ = *p++;
 
@@ -1655,7 +1638,6 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 
 				if (*p == ':') {
 					*z++ = *p++;
-
 					if (!(isdigit(p[0]) && isdigit(p[1])))
 						return -1;
 					*z++ = *p++;
@@ -1668,10 +1650,8 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 	}
 	if (*p != 0)
 		return -1;
-
-	if (must_parse_time && !ret->hour)
+	if (must_parse_time && ret->kind == 'D')
 		return -1;
-
 	return 0;
 }
 
@@ -1909,25 +1889,8 @@ toml_value_t toml_array_timestamp(const toml_array_t *arr, int idx) {
 	ret.ok = (toml_value_timestamp(toml_array_unparsed(arr, idx), &ts) == 0);
 	if (ret.ok) {
 		ret.ok = !!(ret.u.ts = malloc(sizeof(*ret.u.ts)));
-		if (ret.ok) {
+		if (ret.ok)
 			*ret.u.ts = ts;
-			if (ret.u.ts->year)
-				ret.u.ts->year = &ret.u.ts->__buffer.year;
-			if (ret.u.ts->month)
-				ret.u.ts->month = &ret.u.ts->__buffer.month;
-			if (ret.u.ts->day)
-				ret.u.ts->day = &ret.u.ts->__buffer.day;
-			if (ret.u.ts->hour)
-				ret.u.ts->hour = &ret.u.ts->__buffer.hour;
-			if (ret.u.ts->minute)
-				ret.u.ts->minute = &ret.u.ts->__buffer.minute;
-			if (ret.u.ts->second)
-				ret.u.ts->second = &ret.u.ts->__buffer.second;
-			if (ret.u.ts->millisec)
-				ret.u.ts->millisec = &ret.u.ts->__buffer.millisec;
-			if (ret.u.ts->z)
-				ret.u.ts->z = ret.u.ts->__buffer.z;
-		}
 	}
 	return ret;
 }
@@ -1970,35 +1933,17 @@ toml_value_t toml_table_timestamp(const toml_table_t *tbl, const char *key) {
 	ret.ok = (toml_value_timestamp(toml_table_unparsed(tbl, key), &ts) == 0);
 	if (ret.ok) {
 		ret.ok = !!(ret.u.ts = malloc(sizeof(*ret.u.ts)));
-		if (ret.ok) {
+		if (ret.ok)
 			*ret.u.ts = ts;
-			if (ret.u.ts->year)
-				ret.u.ts->year = &ret.u.ts->__buffer.year;
-			if (ret.u.ts->month)
-				ret.u.ts->month = &ret.u.ts->__buffer.month;
-			if (ret.u.ts->day)
-				ret.u.ts->day = &ret.u.ts->__buffer.day;
-			if (ret.u.ts->hour)
-				ret.u.ts->hour = &ret.u.ts->__buffer.hour;
-			if (ret.u.ts->minute)
-				ret.u.ts->minute = &ret.u.ts->__buffer.minute;
-			if (ret.u.ts->second)
-				ret.u.ts->second = &ret.u.ts->__buffer.second;
-			if (ret.u.ts->millisec)
-				ret.u.ts->millisec = &ret.u.ts->__buffer.millisec;
-			if (ret.u.ts->z)
-				ret.u.ts->z = ret.u.ts->__buffer.z;
-		}
 	}
 	return ret;
 }
 
 static int parse_millisec(const char *p, const char **endp) {
 	int ret = 0;
-	int unit = 100; /* unit in millisec */
-	for (; '0' <= *p && *p <= '9'; p++, unit /= 10) {
+	int unit = 100; /// unit in millisec
+	for (; '0' <= *p && *p <= '9'; p++, unit /= 10)
 		ret += (*p - '0') * unit;
-	}
 	*endp = p;
 	return ret;
 }

@@ -71,18 +71,15 @@ struct toml_value_t {
 	} u;
 };
 
-// Timestamp type. The year, month, day, hour, minute, second, z fields may be
-// NULL if they are not relevant. e.g. In a local-date type, the hour, minute,
-// second and z fields will be NULL.
+// Timestamp type; some values may be empty depending on the value of kind.
 struct toml_timestamp_t {
-	struct { // internal; do not use.
-		int year, month, day;
-		int hour, minute, second, millisec;
-		char z[10];
-	} __buffer;
-
-	int *year, *month, *day;
-	int *hour, *minute, *second, *millisec;
+	// 'd'atetime
+	// 'l'local-datetime
+	// 'D'ate-local
+	// 't'ime-local
+	char kind;
+	int year, month, day;
+	int hour, minute, second, millisec;
 	char *z;
 };
 

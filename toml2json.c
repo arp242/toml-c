@@ -49,20 +49,20 @@ static void print_raw(const char *s) {
 	} else if (toml_value_timestamp(s, &ts) == 0) {
 		char millisec[10];
 		if (ts.millisec)
-			sprintf(millisec, ".%03d", *ts.millisec);
+			sprintf(millisec, ".%03d", ts.millisec);
 		else
 			millisec[0] = 0;
-		if (ts.year && ts.hour) {
+		if (ts.kind == 'd' || ts.kind == 'l') {
 			printf("{\"type\": \"%s\",\"value\": \"%04d-%02d-%02dT%02d:%02d:%02d%s%s\"}",
 				(ts.z ? "datetime" : "datetime-local"),
-				*ts.year, *ts.month, *ts.day, *ts.hour, *ts.minute, *ts.second, millisec,
+				ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, millisec,
 				(ts.z ? ts.z : ""));
-		} else if (ts.year) {
+		} else if (ts.kind == 'D') {
 			printf("{\"type\": \"date-local\",\"value\": \"%04d-%02d-%02d\"}",
-				*ts.year, *ts.month, *ts.day);
-		} else if (ts.hour) {
+				ts.year, ts.month, ts.day);
+		} else if (ts.kind == 't') {
 			printf("{\"type\": \"time-local\",\"value\": \"%02d:%02d:%02d%s\"}",
-				*ts.hour, *ts.minute, *ts.second, millisec);
+				ts.hour, ts.minute, ts.second, millisec);
 		}
 	} else {
 		fprintf(stderr, "unknown type\n");
