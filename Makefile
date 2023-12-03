@@ -12,7 +12,13 @@ SOLIB  = libtoml.so.1.0
 
 .PHONY: all clean install check
 
-all: ${LIB} ${SOLIB} ${PROG}
+all: ${LIB} ${SOLIB} ${PROG} header/toml-c.h
+
+header/toml-c.h: ${HDRS} ${SRCS}
+	:                                    >header/toml-c.h
+	sed  's!#endif // TOML_H!!'  toml.h >>header/toml-c.h
+	sed  's!#include "toml.h"!!' toml.c >>header/toml-c.h
+	echo '#endif // TOML_H'             >>header/toml-c.h
 
 *.o: ${HDRS}
 	${CC} ${CFLAGS} -c $<

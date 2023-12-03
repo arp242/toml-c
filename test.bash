@@ -19,7 +19,6 @@ failing=(
 	-skip invalid/string/literal-multiline-quotes-1
 	-skip invalid/string/literal-multiline-quotes-2
 	-skip invalid/string/multiline-quotes-1
-	-skip invalid/inline-table/trailing-comma  # Trailing comma should be error; not worth fixing as it'll be allowed in 1.1
 	-skip invalid/inline-table/add             # Appending existing tables
 	-skip invalid/array/extending-table
 	-skip invalid/table/append-with-dotted-keys-1
@@ -48,6 +47,8 @@ failing=(
 	-skip invalid/local-date/feb-30
 	-skip invalid/local-datetime/feb-29
 	-skip invalid/local-datetime/feb-30
+
+	-skip invalid/inline-table/trailing-comma  # Trailing comma should be error; not worth fixing as it'll be allowed in 1.1
 )
 
 toml-test ./toml2json ${failing[@]} "$@"

@@ -35,18 +35,18 @@ static void print_raw(const char *s) {
 	toml_timestamp_t ts;
 	char dbuf[100];
 
-	if (toml_rtos(s, &sval, &slen) == 0) {
+	if (toml_value_string(s, &sval, &slen) == 0) {
 		printf("{\"type\": \"string\",\"value\": \"");
 		print_escape_string(sval, slen);
 		printf("\"}");
 		free(sval);
-	} else if (toml_rtoi(s, &ival) == 0) {
+	} else if (toml_value_int(s, &ival) == 0) {
 		printf("{\"type\": \"integer\",\"value\": \"%" PRId64 "\"}", ival);
-	} else if (toml_rtob(s, &bval) == 0) {
+	} else if (toml_value_bool(s, &bval) == 0) {
 		printf("{\"type\": \"bool\",\"value\": \"%s\"}", bval ? "true" : "false");
-	} else if (toml_rtod_ex(s, &dval, dbuf, sizeof(dbuf)) == 0) {
+	} else if (toml_value_double_ex(s, &dval, dbuf, sizeof(dbuf)) == 0) {
 		printf("{\"type\": \"float\",\"value\": \"%s\"}", dbuf);
-	} else if (toml_rtots(s, &ts) == 0) {
+	} else if (toml_value_timestamp(s, &ts) == 0) {
 		char millisec[10];
 		if (ts.millisec)
 			sprintf(millisec, ".%03d", *ts.millisec);
@@ -78,16 +78,16 @@ static void print_table(toml_table_t *curtab) {
 	toml_table_t *tab;
 
 	printf("{");
-	for (int i = 0; (key = toml_key_in(curtab, i)) != 0; i++) {
+	for (int i = 0; (key = toml_table_key(curtab, i)) != 0; i++) {
 		printf("%s\"", i > 0 ? ",\n" : "");
 		print_escape_string(key, strlen(key));
 		printf("\":");
 
-		if ((raw = toml_raw_in(curtab, key)) != 0)
+		if ((raw = toml_table_unparsed(curtab, key)) != 0)
 			print_raw(raw);
-		else if ((arr = toml_array_in(curtab, key)) != 0)
+		else if ((arr = toml_table_array(curtab, key)) != 0)
 		  print_array(arr);
-		else if ((tab = toml_table_in(curtab, key)) != 0)
+		else if ((tab = toml_table_table(curtab, key)) != 0)
 		  print_table(tab);
 		else
 			abort();
@@ -99,7 +99,7 @@ static void print_table_array(toml_array_t *curarr) {
 	toml_table_t *tab;
 
 	printf("[");
-	for (int i = 0; (tab = toml_table_at(curarr, i)) != 0; i++) {
+	for (int i = 0; (tab = toml_array_table(curarr, i)) != 0; i++) {
 		printf("%s", i > 0 ? "," : "");
 		print_table(tab);
 	}
@@ -107,7 +107,7 @@ static void print_table_array(toml_array_t *curarr) {
 }
 
 static void print_array(toml_array_t *curarr) {
-	if (toml_array_kind(curarr) == 't') {
+	if (curarr->kind == 't') {
 		print_table_array(curarr);
 		return;
 	}
@@ -118,21 +118,21 @@ static void print_array(toml_array_t *curarr) {
 	toml_array_t *arr;
 	toml_table_t *tab;
 
-	const int n = toml_array_nelem(curarr);
+	const int n = toml_array_len(curarr);
 	for (int i = 0; i < n; i++) {
 		printf("%s", i > 0 ? "," : "");
 
-		if ((arr = toml_array_at(curarr, i)) != 0) {
+		if ((arr = toml_array_array(curarr, i)) != 0) {
 			print_array(arr);
 			continue;
 		}
 
-		if ((tab = toml_table_at(curarr, i)) != 0) {
+		if ((tab = toml_array_table(curarr, i)) != 0) {
 			print_table(tab);
 			continue;
 		}
 
-		raw = toml_raw_at(curarr, i);
+		raw = toml_array_unparsed(curarr, i);
 		if (raw) {
 			print_raw(raw);
 			continue;
