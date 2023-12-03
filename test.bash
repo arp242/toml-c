@@ -29,13 +29,12 @@ failing=(
 	-skip invalid/control/rawmulti-cd
 	-skip invalid/control/multi-cr
 	-skip invalid/control/comment-ff
-	-skip invalid/encoding/bad-codepoint       # Doesn't reject invalid UTF-8; nothing is multi-byte aware, so...
 	-skip invalid/encoding/bad-utf8-in-comment
-	-skip invalid/encoding/bad-utf8-in-multiline-literal
-	-skip invalid/encoding/bad-utf8-in-multiline
-	-skip invalid/encoding/bad-utf8-in-string-literal
-	-skip invalid/encoding/bad-utf8-in-string
-	-skip invalid/encoding/utf16
+	-skip invalid/encoding/bad-codepoint
+
+	-skip invalid/encoding/utf16-comment
+	-skip invalid/encoding/utf16-key
+
 	-skip invalid/inline-table/trailing-comma  # Trailing comma should be error; not worth fixing as it'll be allowed in 1.1
 )
 

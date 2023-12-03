@@ -1,9 +1,8 @@
-#include "toml.h"
-#include <assert.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
+#include "toml.h"
 
 static void print_escape_string(const char *s, int sl) {
 	for (int i = 0; i < sl; i++) {

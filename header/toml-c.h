@@ -61,7 +61,8 @@ struct toml_keyval_t {
 // TOML primitive.
 //
 // The string value s is a regular NULL-terminated C string, but the string
-// length is also given in sl since TOML values may contain NULL bytes.
+// length is also given in sl since TOML values may contain NULL bytes. The
+// value is guaranteed to be correct UTF-8.
 struct toml_value_t {
 	bool ok;
 	union {
@@ -352,6 +353,9 @@ static toml_arritem_t *expand_arritem(toml_arritem_t *p, int n) {
 	return pp;
 }
 
+static uint8_t const u8_length[] = {1,1,1,1,1,1,1,1,0,0,0,0,2,2,3,4};
+#define u8length(s) u8_length[(((uint8_t *)(s))[0] & 0xFF) >> 4];
+
 static char *norm_lit_str(const char *src, int srclen, int *len, bool multiline, bool is_key, char *errbuf, int errbufsz) {
 	const char *sp  = src;
 	const char *sq  = src + srclen;
@@ -374,6 +378,25 @@ static char *norm_lit_str(const char *src, int srclen, int *len, bool multiline,
 
 		if (sp >= sq) /// finished?
 			break;
+
+		uint8_t l = u8length(sp);
+		if (l == 0) {
+			xfree(dst);
+			snprintf(errbuf, errbufsz, "invalid UTF-8 at byte pos %d", off);
+			return 0;
+		}
+		if (l > 1) {
+			for (int i = 0; i < l; i++) {
+				char ch = *sp++;
+				if ((ch & 0x80) != 0x80) {
+					xfree(dst);
+					snprintf(errbuf, errbufsz, "invalid UTF-8 at byte pos %d", off);
+					return 0;
+				}
+				dst[off++] = ch;
+			}
+			continue;
+		}
 
 		char ch = *sp++;
 		if (is_key && ch == '\n') {
@@ -424,6 +447,25 @@ static char *norm_basic_str(const char *src, int srclen, int *len, bool multilin
 		if (sp >= sq) /// finished?
 			break;
 
+		uint8_t l = u8length(sp);
+		if (l == 0) {
+			xfree(dst);
+			snprintf(errbuf, errbufsz, "invalid UTF-8 at byte pos %d", off);
+			return 0;
+		}
+		if (l > 1) {
+			for (int i = 0; i < l; i++) {
+				char ch = *sp++;
+				if ((ch & 0x80) != 0x80) {
+					xfree(dst);
+					snprintf(errbuf, errbufsz, "invalid UTF-8 at byte pos %d", off);
+					return 0;
+				}
+				dst[off++] = ch;
+			}
+			continue;
+		}
+
 		char ch = *sp++;
 		if (is_key && ch == '\n') {
 			xfree(dst);
@@ -432,7 +474,7 @@ static char *norm_basic_str(const char *src, int srclen, int *len, bool multilin
 		}
 		if (ch != '\\') {
 			/// must be escaped: U+0000 to U+0008, U+000A to U+001F, U+007F
-			if ((0 <= ch && ch <= 0x08) || (0x0a <= ch && ch <= 0x1f) || ch == 0x7f) {
+			if ((ch >= 0 && ch <= 0x08) || (ch >= 0x0a && ch <= 0x1f) || ch == 0x7f) {
 				if (!(multiline && (ch == '\r' || ch == '\n'))) {
 					xfree(dst);
 					snprintf(errbuf, errbufsz, "invalid char U+%04x", ch);
@@ -2054,9 +2096,8 @@ toml_value_t toml_table_string(const toml_table_t *tbl, const char *key) {
 	toml_value_t ret;
 	memset(&ret, 0, sizeof(ret));
 	toml_unparsed_t raw = toml_table_unparsed(tbl, key);
-	if (raw) {
+	if (raw)
 		ret.ok = (toml_value_string(raw, &ret.u.s, &ret.u.sl) == 0);
-	}
 	return ret;
 }
 

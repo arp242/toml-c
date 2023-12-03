@@ -61,7 +61,8 @@ struct toml_keyval_t {
 // TOML primitive.
 //
 // The string value s is a regular NULL-terminated C string, but the string
-// length is also given in sl since TOML values may contain NULL bytes.
+// length is also given in sl since TOML values may contain NULL bytes. The
+// value is guaranteed to be correct UTF-8.
 struct toml_value_t {
 	bool ok;
 	union {
