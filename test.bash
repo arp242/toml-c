@@ -17,7 +17,6 @@ failing=(
 	-skip valid/key/quoted-unicode             # Doesn't print null byte correctly.
 	-skip valid/string/quoted-unicode
 	-skip valid/string/unicode-escape
-	-skip valid/spec/string-7                  # Lots of ''''''' ... that somehow goes wrong.
 
 	-skip invalid/string/literal-multiline-quotes-1
 	-skip invalid/string/literal-multiline-quotes-2

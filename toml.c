@@ -1361,31 +1361,29 @@ static int scan_time(const char *p, int *hh, int *mm, int *ss) {
 
 static int scan_string(context_t *ctx, char *p, int lineno, int dotisspecial) {
 	char *orig = p;
-	if (0 == strncmp(p, "'''", 3)) {
-		char *q = p + 3;
 
-		while (1) {
+	// Literal multiline.
+	if (strncmp(p, "'''", 3) == 0) {
+		char *q = p + 3;
+		while (true) {
 			q = strstr(q, "'''");
-			if (0 == q) {
+			if (q == 0)
 				return e_syntax(ctx, lineno, "unterminated triple-s-quote");
-			}
 			while (q[3] == '\'')
 				q++;
 			break;
 		}
-
 		set_token(ctx, STRING, lineno, orig, q + 3 - orig);
 		return 0;
 	}
 
-	if (0 == strncmp(p, "\"\"\"", 3)) {
+	// Multiline.
+	if (strncmp(p, "\"\"\"", 3) == 0) {
 		char *q = p + 3;
-
-		while (1) {
+		while (true) {
 			q = strstr(q, "\"\"\"");
-			if (0 == q) {
+			if (q == 0)
 				return e_syntax(ctx, lineno, "unterminated triple-d-quote");
-			}
 			if (q[-1] == '\\') {
 				q++;
 				continue;
@@ -1395,13 +1393,12 @@ static int scan_string(context_t *ctx, char *p, int lineno, int dotisspecial) {
 			break;
 		}
 
-		// the string is [p+3, q-1]
-
-		int hexreq = 0; /* #hex required */
-		int escape = 0;
+		/// the string is [p+3, q-1]
+		int hexreq = 0; /// #hex required
+		bool escape = false;
 		for (p += 3; p < q; p++) {
 			if (escape) {
-				escape = 0;
+				escape = false;
 				if (strchr("btnfr\"\\", *p))
 					continue;
 				if (*p == 'u') {
@@ -1423,7 +1420,7 @@ static int scan_string(context_t *ctx, char *p, int lineno, int dotisspecial) {
 				return e_syntax(ctx, lineno, "expect hex char");
 			}
 			if (*p == '\\') {
-				escape = 1;
+				escape = true;
 				continue;
 			}
 		}
@@ -1436,23 +1433,24 @@ static int scan_string(context_t *ctx, char *p, int lineno, int dotisspecial) {
 		return 0;
 	}
 
-	if ('\'' == *p) {
+	// Literal.
+	if (*p == '\'') {
 		for (p++; *p && *p != '\n' && *p != '\''; p++)
 			;
-		if (*p != '\'') {
+		if (*p != '\'')
 			return e_syntax(ctx, lineno, "unterminated s-quote");
-		}
 
 		set_token(ctx, STRING, lineno, orig, p + 1 - orig);
 		return 0;
 	}
 
-	if ('\"' == *p) {
-		int hexreq = 0; // #hex required
-		int escape = 0;
+	// String.
+	if (*p == '\"') {
+		int hexreq = 0; /// #hex required
+		bool escape = false;
 		for (p++; *p; p++) {
 			if (escape) {
-				escape = 0;
+				escape = false;
 				if (strchr("btnfr\"\\", *p))
 					continue;
 				if (*p == 'u') {
@@ -1472,13 +1470,7 @@ static int scan_string(context_t *ctx, char *p, int lineno, int dotisspecial) {
 				return e_syntax(ctx, lineno, "expect hex char");
 			}
 			if (*p == '\\') {
-				escape = 1;
-				continue;
-			}
-			if (*p == '\'') {
-				if (p[1] == '\'' && p[2] == '\'') {
-					return e_syntax(ctx, lineno, "triple-s-quote inside string lit");
-				}
+				escape = true;
 				continue;
 			}
 			if (*p == '\n')
@@ -1486,27 +1478,23 @@ static int scan_string(context_t *ctx, char *p, int lineno, int dotisspecial) {
 			if (*p == '"')
 				break;
 		}
-		if (*p != '"') {
+		if (*p != '"')
 			return e_syntax(ctx, lineno, "unterminated quote");
-		}
 
 		set_token(ctx, STRING, lineno, orig, p + 1 - orig);
 		return 0;
 	}
 
-	/* check for timestamp without quotes */
-	if (0 == scan_date(p, 0, 0, 0) || 0 == scan_time(p, 0, 0, 0)) {
-		// forward thru the timestamp
-		p += strspn(p, "0123456789.:+-Tt Zz");
-		// squeeze out any spaces at end of string
-		for (; p[-1] == ' '; p--)
+	// check for timestamp without quotes
+	if (scan_date(p, 0, 0, 0) == 0 || 0 == scan_time(p, 0, 0, 0)) {
+		p += strspn(p, "0123456789.:+-Tt Zz"); /// forward thru the timestamp
+		for (; p[-1] == ' '; p--) /// squeeze out any spaces at end of string
 			;
-		// tokenize
-		set_token(ctx, STRING, lineno, orig, p - orig);
+		set_token(ctx, STRING, lineno, orig, p - orig); /// tokenize
 		return 0;
 	}
 
-	/* literals */
+	// literals
 	for (; *p && *p != '\n'; p++) {
 		int ch = *p;
 		if (ch == '.' && dotisspecial)
