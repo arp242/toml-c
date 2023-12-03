@@ -14,8 +14,6 @@ if [ ! -f ./toml2json ]; then
 fi
 
 failing=(
-	-skip valid/key/quoted-unicode             # Doesn't deal with NUL byte in keys.
-
 	-skip invalid/string/literal-multiline-quotes-1
 	-skip invalid/string/literal-multiline-quotes-2
 	-skip invalid/string/multiline-quotes-1

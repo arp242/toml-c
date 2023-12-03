@@ -142,6 +142,7 @@ struct context_t {
 	struct {
 		int top;
 		char *key[10];
+		int keylen[10];
 		token_t tok[10];
 	} tpath;
 };
@@ -379,7 +380,7 @@ static char *norm_basic_str(const char *src, int srclen, int *len, bool multilin
 }
 
 // Normalize a key. Convert all special chars to raw unescaped utf-8 chars.
-static char *normalize_key(context_t *ctx, token_t strtok) {
+static char *normalize_key(context_t *ctx, token_t strtok, int *keylen) {
 	const char *sp    = strtok.ptr;
 	const char *sq    = strtok.ptr + strtok.len;
 	int        lineno = strtok.lineno;
@@ -396,11 +397,10 @@ static char *normalize_key(context_t *ctx, token_t strtok) {
 			sp++, sq--;
 
 		char ebuf[80];
-		int len; // Unused for now.
 		if (ch == '\'')
-			ret = norm_lit_str(sp, sq - sp, &len, multiline, true, ebuf, sizeof(ebuf));
+			ret = norm_lit_str(sp, sq - sp, keylen, multiline, true, ebuf, sizeof(ebuf));
 		else
-			ret = norm_basic_str(sp, sq - sp, &len, multiline, true, ebuf, sizeof(ebuf));
+			ret = norm_basic_str(sp, sq - sp, keylen, multiline, true, ebuf, sizeof(ebuf));
 		if (!ret) {
 			e_syntax(ctx, lineno, ebuf);
 			return 0;
@@ -408,7 +408,9 @@ static char *normalize_key(context_t *ctx, token_t strtok) {
 		return ret;
 	}
 
+	*keylen = 0;
 	for (const char *c = sp; c != sq; c++) { /// Bare key: allow: [A-Za-z0-9_-]+
+		*keylen = *keylen + 1;
 		if (isalnum(*c) || *c == '_' || *c == '-')
 			continue;
 		e_badkey(ctx, lineno);
@@ -466,12 +468,11 @@ static int key_kind(toml_table_t *tab, const char *key) {
 
 /* Create a keyval in the table. */
 static toml_keyval_t *create_keyval_in_table(context_t *ctx, toml_table_t *tab, token_t keytok) {
-	/// Normalize the key to be used for lookup; remember to free it if we error out.
-	char *newkey = normalize_key(ctx, keytok);
+	int keylen;
+	char *newkey = normalize_key(ctx, keytok, &keylen);
 	if (!newkey)
 		return 0;
 
-	/// If key exists: error out.
 	toml_keyval_t *dest = 0;
 	if (key_kind(tab, newkey)) {
 		xfree(newkey);
@@ -479,7 +480,6 @@ static toml_keyval_t *create_keyval_in_table(context_t *ctx, toml_table_t *tab, 
 		return 0;
 	}
 
-	/// make a new entry
 	int n = tab->nkval;
 	toml_keyval_t **base;
 	if ((base = (toml_keyval_t **)expand_ptrarr((void **)tab->kval, n)) == 0) {
@@ -494,28 +494,27 @@ static toml_keyval_t *create_keyval_in_table(context_t *ctx, toml_table_t *tab, 
 		e_outofmemory(ctx, FLINE);
 		return 0;
 	}
-	dest = tab->kval[tab->nkval++];
 
-	/// save the key in the new value struct.
+	dest = tab->kval[tab->nkval++];
 	dest->key = newkey;
+	dest->keylen = keylen;
 	return dest;
 }
 
-/* Create a table in the table. */
+// Create a table in the table.
 static toml_table_t *create_keytable_in_table(context_t *ctx, toml_table_t *tab, token_t keytok) {
-	/// Normalize the key to be used for lookup. remember to free it if we error out.
-	char *newkey = normalize_key(ctx, keytok);
+	int keylen;
+	char *newkey = normalize_key(ctx, keytok, &keylen);
 	if (!newkey)
 		return 0;
 
-	/* if key exists: error out */
 	toml_table_t *dest = 0;
 	if (check_key(tab, newkey, 0, 0, &dest)) {
-		xfree(newkey); /* don't need this anymore */
+		xfree(newkey);
 
-		/* special case: if table exists, but was created implicitly ... */
+		/// Special case: make explicit if table exists and was created
+		/// implicitly.
 		if (dest && dest->implicit) {
-			/* we make it explicit now, and simply return it. */
 			dest->implicit = false;
 			return dest;
 		}
@@ -523,7 +522,6 @@ static toml_table_t *create_keytable_in_table(context_t *ctx, toml_table_t *tab,
 		return 0;
 	}
 
-	/* create a new table entry */
 	int n = tab->ntab;
 	toml_table_t **base;
 	if ((base = (toml_table_t **)expand_ptrarr((void **)tab->tab, n)) == 0) {
@@ -538,28 +536,26 @@ static toml_table_t *create_keytable_in_table(context_t *ctx, toml_table_t *tab,
 		e_outofmemory(ctx, FLINE);
 		return 0;
 	}
-	dest = tab->tab[tab->ntab++];
 
-	/* save the key in the new table struct */
+	dest = tab->tab[tab->ntab++];
 	dest->key = newkey;
+	dest->keylen = keylen;
 	return dest;
 }
 
 // Create an array in the table.
 static toml_array_t *create_keyarray_in_table(context_t *ctx, toml_table_t *tab, token_t keytok, char kind) {
-	// Normalize the key to be used for lookup. remember to free it if we error out. */
-	char *newkey = normalize_key(ctx, keytok);
+	int keylen;
+	char *newkey = normalize_key(ctx, keytok, &keylen);
 	if (!newkey)
 		return 0;
 
-	/* if key exists: error out */
 	if (key_kind(tab, newkey)) {
-		xfree(newkey); /* don't need this anymore */
+		xfree(newkey);
 		e_keyexists(ctx, keytok.lineno);
 		return 0;
 	}
 
-	/* make a new array entry */
 	int n = tab->narr;
 	toml_array_t **base;
 	if ((base = (toml_array_t **)expand_ptrarr((void **)tab->arr, n)) == 0) {
@@ -576,7 +572,7 @@ static toml_array_t *create_keyarray_in_table(context_t *ctx, toml_table_t *tab,
 	}
 	toml_array_t *dest = tab->arr[tab->narr++];
 
-	/* save the key in the new array struct */
+	dest->keylen = keylen;
 	dest->key = newkey;
 	dest->kind = kind;
 	return dest;
@@ -822,11 +818,14 @@ static int parse_keyval(context_t *ctx, toml_table_t *tab) {
 		   physical.shape = "round" */
 		toml_table_t *subtab = 0;
 		{
-			char *subtabstr = normalize_key(ctx, key);
+			int keylen;
+			char *subtabstr = normalize_key(ctx, key, &keylen);
 			if (!subtabstr)
 				return -1;
 
 			subtab = toml_table_table(tab, subtabstr);
+			if (subtab)
+				subtab->keylen = keylen;
 			xfree(subtabstr);
 		}
 		if (!subtab) {
@@ -909,11 +908,13 @@ static int fill_tabpath(context_t *ctx) {
 		if (ctx->tok.tok != STRING)
 			return e_syntax(ctx, ctx->tok.lineno, "invalid or missing key");
 
-		char *key = normalize_key(ctx, ctx->tok);
+		int keylen;
+		char *key = normalize_key(ctx, ctx->tok, &keylen);
 		if (!key)
 			return -1;
 		ctx->tpath.tok[ctx->tpath.top] = ctx->tok;
 		ctx->tpath.key[ctx->tpath.top] = key;
+		ctx->tpath.keylen[ctx->tpath.top] = keylen;
 		ctx->tpath.top++;
 
 		if (next_token(ctx, true))
@@ -939,6 +940,7 @@ static int walk_tabpath(context_t *ctx) {
 
 	for (int i = 0; i < ctx->tpath.top; i++) {
 		const char *key = ctx->tpath.key[i];
+		int keylen = ctx->tpath.keylen[i];
 
 		toml_keyval_t *nextval = 0;
 		toml_array_t *nextarr = 0;
@@ -959,8 +961,7 @@ static int walk_tabpath(context_t *ctx) {
 				return e_keyexists(ctx, ctx->tpath.tok[i].lineno);
 			default: { /// Not found. Let's create an implicit table.
 				int n = curtab->ntab;
-				toml_table_t **base =
-					(toml_table_t **)expand_ptrarr((void **)curtab->tab, n);
+				toml_table_t **base = (toml_table_t **)expand_ptrarr((void **)curtab->tab, n);
 				if (base == 0)
 					return e_outofmemory(ctx, FLINE);
 
@@ -971,6 +972,7 @@ static int walk_tabpath(context_t *ctx) {
 
 				if ((base[n]->key = STRDUP(key)) == 0)
 					return e_outofmemory(ctx, FLINE);
+				base[n]->keylen = keylen;
 
 				nexttab = curtab->tab[curtab->ntab++];
 
@@ -1025,10 +1027,13 @@ static int parse_select(context_t *ctx) {
 		/* [[x.y.z]] -> create z = [] in x.y */
 		toml_array_t *arr = 0;
 		{
-			char *zstr = normalize_key(ctx, z);
+			int keylen;
+			char *zstr = normalize_key(ctx, z, &keylen);
 			if (!zstr)
 				return -1;
 			arr = toml_table_array(ctx->curtab, zstr);
+			if (arr)
+				arr->keylen = keylen;
 			xfree(zstr);
 		}
 		if (!arr) {
@@ -1511,13 +1516,20 @@ static int next_token(context_t *ctx, bool dotisspecial) {
 	return 0;
 }
 
-const char *toml_table_key(const toml_table_t *tab, int keyidx) {
-	if (keyidx < tab->nkval)
-		return tab->kval[keyidx]->key;
-	if ((keyidx -= tab->nkval) < tab->narr)
-		return tab->arr[keyidx]->key;
-	if ((keyidx -= tab->narr) < tab->ntab)
-		return tab->tab[keyidx]->key;
+const char *toml_table_key(const toml_table_t *tab, int keyidx, int *keylen) {
+	if (keyidx < tab->nkval) {
+		*keylen = tab->kval[keyidx]->keylen;
+		return    tab->kval[keyidx]->key;
+	}
+	if ((keyidx -= tab->nkval) < tab->narr) {
+		*keylen = tab->arr[keyidx]->keylen;
+		return    tab->arr[keyidx]->key;
+	}
+	if ((keyidx -= tab->narr) < tab->ntab) {
+		*keylen = tab->tab[keyidx]->keylen;
+		return    tab->tab[keyidx]->key;
+	}
+	*keylen = 0;
 	return 0;
 }
 

@@ -23,6 +23,7 @@ typedef struct toml_arritem_t   toml_arritem_t;
 // TOML table.
 struct toml_table_t {
 	const char *key;       // Key for this table
+	int keylen;            // length of key.
 	bool implicit;         // Table was created implicitly
 	bool readonly;         // No more modification allowed
 
@@ -37,6 +38,7 @@ struct toml_table_t {
 // TOML array.
 struct toml_array_t {
 	const char *key; // key to this array
+	int keylen;      // length of key.
 	int kind;        // element kind: 'v'alue, 'a'rray, or 't'able, 'm'ixed
 	int type;        // for value kind: 'i'nt, 'd'ouble, 'b'ool, 's'tring, 't'ime, 'D'ate, 'T'imestamp, 'm'ixed
 	int nitem;       // number of elements
@@ -52,6 +54,7 @@ struct toml_arritem_t {
 // TOML key = value pair.
 struct toml_keyval_t {
 	const char *key; // key to this value
+	int keylen;      // length of key.
 	const char *val; // the raw value
 };
 
@@ -106,7 +109,7 @@ struct toml_timestamp_t {
 
 // Table functions.
 // toml_table_key => 0 if out of range.
-	TOML_EXTERN const char   *toml_table_key       (const toml_table_t *table, int keyidx);
+	TOML_EXTERN const char   *toml_table_key       (const toml_table_t *table, int keyidx, int *keylen);
 	TOML_EXTERN int           toml_table_len       (const toml_table_t *table);
 	TOML_EXTERN bool          toml_table_has_key   (const toml_table_t *table, const char *key);
 	TOML_EXTERN toml_value_t  toml_table_string    (const toml_table_t *table, const char *key);

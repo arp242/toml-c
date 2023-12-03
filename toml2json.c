@@ -73,14 +73,15 @@ static void print_raw(const char *s) {
 static void print_array(toml_array_t *arr);
 static void print_table(toml_table_t *curtab) {
 	const char *key;
+	int keylen;
 	const char *raw;
 	toml_array_t *arr;
 	toml_table_t *tab;
 
 	printf("{");
-	for (int i = 0; (key = toml_table_key(curtab, i)) != 0; i++) {
+	for (int i = 0; (key = toml_table_key(curtab, i, &keylen)) != 0; i++) {
 		printf("%s\"", i > 0 ? ",\n" : "");
-		print_escape_string(key, strlen(key));
+		print_escape_string(key, keylen);
 		printf("\":");
 
 		if ((raw = toml_table_unparsed(curtab, key)) != 0)
