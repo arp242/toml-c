@@ -13,4 +13,5 @@ jobs:
     - uses: actions/checkout@v3
     - run: |
         go install github.com/toml-lang/toml-test/cmd/toml-test@master
+        export PATH=$(go env GOBIN):$PATH
         make check
