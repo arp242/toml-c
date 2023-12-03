@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void print_escape_string(const char *s) {
-	for (; *s; s++) {
-		int ch = *s;
+static void print_escape_string(const char *s, int sl) {
+	for (int i = 0; i < sl; i++) {
+		char ch = s[i];
 		switch (ch) {
 			case '\b': printf("\\b");  break;
 			case '\t': printf("\\t");  break;
@@ -18,7 +18,7 @@ static void print_escape_string(const char *s) {
 			case '\\': printf("\\\\"); break;
 			default:
 				if (ch >= 0x00 && ch <= 0x1f)
-					printf("\\u00%X", ch);
+					printf("\\u00%02X", ch);
 				else
 					printf("%c", ch);
 				break;
@@ -28,39 +28,40 @@ static void print_escape_string(const char *s) {
 
 static void print_raw(const char *s) {
 	char *sval;
+	int slen;
 	int64_t ival;
 	int bval;
 	double dval;
 	toml_timestamp_t ts;
 	char dbuf[100];
 
-	if (0 == toml_rtos(s, &sval)) {
-		printf("{\"type\":\"string\",\"value\":\"");
-		print_escape_string(sval);
+	if (toml_rtos(s, &sval, &slen) == 0) {
+		printf("{\"type\": \"string\",\"value\": \"");
+		print_escape_string(sval, slen);
 		printf("\"}");
 		free(sval);
-	} else if (0 == toml_rtoi(s, &ival)) {
-		printf("{\"type\":\"integer\",\"value\":\"%" PRId64 "\"}", ival);
-	} else if (0 == toml_rtob(s, &bval)) {
-		printf("{\"type\":\"bool\",\"value\":\"%s\"}", bval ? "true" : "false");
-	} else if (0 == toml_rtod_ex(s, &dval, dbuf, sizeof(dbuf))) {
-		printf("{\"type\":\"float\",\"value\":\"%s\"}", dbuf);
-	} else if (0 == toml_rtots(s, &ts)) {
+	} else if (toml_rtoi(s, &ival) == 0) {
+		printf("{\"type\": \"integer\",\"value\": \"%" PRId64 "\"}", ival);
+	} else if (toml_rtob(s, &bval) == 0) {
+		printf("{\"type\": \"bool\",\"value\": \"%s\"}", bval ? "true" : "false");
+	} else if (toml_rtod_ex(s, &dval, dbuf, sizeof(dbuf)) == 0) {
+		printf("{\"type\": \"float\",\"value\": \"%s\"}", dbuf);
+	} else if (toml_rtots(s, &ts) == 0) {
 		char millisec[10];
 		if (ts.millisec)
 			sprintf(millisec, ".%03d", *ts.millisec);
 		else
 			millisec[0] = 0;
 		if (ts.year && ts.hour) {
-			printf("{\"type\":\"%s\",\"value\":\"%04d-%02d-%02dT%02d:%02d:%02d%s%s\"}",
+			printf("{\"type\": \"%s\",\"value\": \"%04d-%02d-%02dT%02d:%02d:%02d%s%s\"}",
 				(ts.z ? "datetime" : "datetime-local"),
 				*ts.year, *ts.month, *ts.day, *ts.hour, *ts.minute, *ts.second, millisec,
 				(ts.z ? ts.z : ""));
 		} else if (ts.year) {
-			printf("{\"type\":\"date-local\",\"value\":\"%04d-%02d-%02d\"}",
+			printf("{\"type\": \"date-local\",\"value\": \"%04d-%02d-%02d\"}",
 				*ts.year, *ts.month, *ts.day);
 		} else if (ts.hour) {
-			printf("{\"type\":\"time-local\",\"value\":\"%02d:%02d:%02d%s\"}",
+			printf("{\"type\": \"time-local\",\"value\": \"%02d:%02d:%02d%s\"}",
 				*ts.hour, *ts.minute, *ts.second, millisec);
 		}
 	} else {
@@ -77,21 +78,19 @@ static void print_table(toml_table_t *curtab) {
 	toml_table_t *tab;
 
 	printf("{");
-	for (int i = 0; 0 != (key = toml_key_in(curtab, i)); i++) {
-
-		printf("%s\"", i > 0 ? "," : "");
-		print_escape_string(key);
+	for (int i = 0; (key = toml_key_in(curtab, i)) != 0; i++) {
+		printf("%s\"", i > 0 ? ",\n" : "");
+		print_escape_string(key, strlen(key));
 		printf("\":");
 
-		if (0 != (raw = toml_raw_in(curtab, key))) {
+		if ((raw = toml_raw_in(curtab, key)) != 0)
 			print_raw(raw);
-		} else if (0 != (arr = toml_array_in(curtab, key))) {
-			print_array(arr);
-		} else if (0 != (tab = toml_table_in(curtab, key))) {
-			print_table(tab);
-		} else {
+		else if ((arr = toml_array_in(curtab, key)) != 0)
+		  print_array(arr);
+		else if ((tab = toml_table_in(curtab, key)) != 0)
+		  print_table(tab);
+		else
 			abort();
-		}
 	}
 	printf("}");
 }
@@ -100,7 +99,7 @@ static void print_table_array(toml_array_t *curarr) {
 	toml_table_t *tab;
 
 	printf("[");
-	for (int i = 0; 0 != (tab = toml_table_at(curarr, i)); i++) {
+	for (int i = 0; (tab = toml_table_at(curarr, i)) != 0; i++) {
 		printf("%s", i > 0 ? "," : "");
 		print_table(tab);
 	}
@@ -123,12 +122,12 @@ static void print_array(toml_array_t *curarr) {
 	for (int i = 0; i < n; i++) {
 		printf("%s", i > 0 ? "," : "");
 
-		if (0 != (arr = toml_array_at(curarr, i))) {
+		if ((arr = toml_array_at(curarr, i)) != 0) {
 			print_array(arr);
 			continue;
 		}
 
-		if (0 != (tab = toml_table_at(curarr, i))) {
+		if ((tab = toml_table_at(curarr, i)) != 0) {
 			print_table(tab);
 			continue;
 		}
@@ -171,8 +170,7 @@ int main(int argc, const char *argv[]) {
 	for (int i = 1; i < argc; i++) {
 		FILE *fp = fopen(argv[i], "r");
 		if (!fp) {
-			fprintf(stderr, "ERROR: cannot open %s: %s\n", argv[i],
-					strerror(errno));
+			fprintf(stderr, "ERROR: cannot open %s: %s\n", argv[i], strerror(errno));
 			exit(1);
 		}
 		cat(fp);
