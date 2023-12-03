@@ -12,7 +12,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <time.h>
 
 typedef struct toml_table_t     toml_table_t;
 typedef struct toml_array_t     toml_array_t;
@@ -72,9 +71,7 @@ struct toml_value_t {
 	} u;
 };
 
-// Timestamp type; The year, month, day, hour, minute, second, z fields may be
-// -1 if they are not relevant. e.g. In a local-date type, the hour, minute,
-// second and z fields will be -1.
+// Timestamp type; some values may be empty depending on the value of kind.
 struct toml_timestamp_t {
 	// 'd'atetime
 	// 'l'local-datetime
@@ -142,7 +139,6 @@ struct toml_timestamp_t {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 
 
@@ -251,8 +247,6 @@ enum tokentype_t {
 	LBRACKET,
 	RBRACKET,
 	STRING,
-	DATETIME,
-	BOOL,
 };
 typedef enum tokentype_t tokentype_t;
 
@@ -861,7 +855,6 @@ static int parse_array(context_t *ctx, toml_array_t *arr) {
 			break;
 
 		switch (ctx->tok.tok) {
-			case DATETIME:
 			case STRING: {
 				/// set array kind if this will be the first entry
 				if (arr->kind == 0)
@@ -986,7 +979,6 @@ static int parse_keyval(context_t *ctx, toml_table_t *tab) {
 		return -1;
 
 	switch (ctx->tok.tok) {
-		case DATETIME:
 		case STRING: { // key = "value"
 			toml_keyval_t *keyval = create_keyval_in_table(ctx, tab, key);
 			if (!keyval)
@@ -1251,7 +1243,6 @@ toml_table_t *toml_parse(char *toml, char *errbuf, int errbufsz) {
 					goto fail;
 				break;
 
-			case DATETIME:
 			case STRING:
 				if (parse_keyval(&ctx, ctx.curtab))
 					goto fail;
@@ -1431,10 +1422,9 @@ static int scan_date(const char *p, int *YY, int *MM, int *DD) {
 }
 
 static int scan_time(const char *p, int *hh, int *mm, int *ss) {
-	int hour, minute, second;
-	hour = scan_digits(p, 2);
-	minute = (hour >= 0 && p[2] == ':') ? scan_digits(p + 3, 2) : -1;
-	second = (minute >= 0 && p[5] == ':') ? scan_digits(p + 6, 2) : -1;
+	int hour = scan_digits(p, 2);
+	int minute = (hour >= 0 && p[2] == ':') ? scan_digits(p + 3, 2) : -1;
+	int second = (minute >= 0 && p[5] == ':') ? scan_digits(p + 6, 2) : -1;
 	if (hh)
 		*hh = hour;
 	if (mm)
@@ -1575,7 +1565,7 @@ static int scan_string(context_t *ctx, char *p, int lineno, bool dotisspecial) {
 		p += strspn(p, "0123456789.:+-Tt Zz"); /// forward thru the timestamp
 		for (; p[-1] == ' '; p--) /// squeeze out any spaces at end of string
 			;
-		set_token(ctx, DATETIME, lineno, orig, p - orig); /// tokenize
+		set_token(ctx, STRING, lineno, orig, p - orig); /// tokenize
 		return 0;
 	}
 
@@ -1718,6 +1708,8 @@ toml_table_t *toml_array_table(const toml_array_t *arr, int idx) {
 
 static int parse_millisec(const char *p, const char **endp);
 
+bool is_leap(int y) { return y % 4 == 0 && (y % 100 != 0 || y % 400 == 0); }
+
 int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 	if (!src_)
 		return -1;
@@ -1727,16 +1719,13 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 
 	memset(ret, 0, sizeof(*ret));
 
-	int  month, day, hour, minute, second, millisec;
-
 	/// YYYY-MM-DD
-	if (scan_date(p, &ret->year, &month, &day) == 0) {
-		if (month < 1 || day < 1 || month > 12 || day > 31)
+	if (scan_date(p, &ret->year, &ret->month, &ret->day) == 0) {
+		if (ret->month < 1 || ret->day < 1 || ret->month > 12 || ret->day > 31)
+			return -1;
+		if (ret->month == 2 && ret->day > (is_leap(ret->year) ? 29 : 28))
 			return -1;
 		ret->kind = 'D';
-		//ret->year  = year;
-		ret->month = month;
-		ret->day   = day;
 
 		p += 10;
 		if (*p) {
@@ -1748,23 +1737,16 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 	}
 
 	/// HH:MM:SS
-	if (scan_time(p, &hour, &minute, &second) == 0) {
-		if (second < 0 || minute < 0 || hour < 0 || hour > 23 || minute > 59 || second > 60)
+	if (scan_time(p, &ret->hour, &ret->minute, &ret->second) == 0) {
+		if (ret->second < 0 || ret->minute < 0 || ret->hour < 0 || ret->hour > 23 || ret->minute > 59 || ret->second > 60)
 			return -1;
-		if (ret->kind == 'D')
-			ret->kind = 'l';
-		else
-			ret->kind = 't';
-		ret->hour = hour;
-		ret->minute = minute;
-		ret->second = second;
+		ret->kind = (ret->kind == 'D' ? 'l' : 't');
 
 		p += 8;
 		if (*p == '.') { /// optionally, parse millisec
 			p++; /// skip '.'
 			const char *qq;
-			millisec = parse_millisec(p, &qq);
-			ret->millisec = millisec;
+			ret->millisec = parse_millisec(p, &qq);
 			p = qq;
 		}
 
@@ -1776,7 +1758,6 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 				*z++ = 'Z';
 				p++;
 				*z = 0;
-
 			} else if (*p == '+' || *p == '-') {
 				*z++ = *p++;
 
@@ -1787,7 +1768,6 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 
 				if (*p == ':') {
 					*z++ = *p++;
-
 					if (!(isdigit(p[0]) && isdigit(p[1])))
 						return -1;
 					*z++ = *p++;
@@ -2091,10 +2071,9 @@ toml_value_t toml_table_timestamp(const toml_table_t *tbl, const char *key) {
 
 static int parse_millisec(const char *p, const char **endp) {
 	int ret = 0;
-	int unit = 100; /* unit in millisec */
-	for (; '0' <= *p && *p <= '9'; p++, unit /= 10) {
+	int unit = 100; /// unit in millisec
+	for (; '0' <= *p && *p <= '9'; p++, unit /= 10)
 		ret += (*p - '0') * unit;
-	}
 	*endp = p;
 	return ret;
 }

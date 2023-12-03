@@ -41,13 +41,6 @@ failing=(
 	-skip invalid/encoding/bad-utf8-in-string-literal
 	-skip invalid/encoding/bad-utf8-in-string
 	-skip invalid/encoding/utf16
-	-skip invalid/datetime/feb-29              # Doesn't reject invalid Feb dates
-	-skip invalid/datetime/feb-30
-	-skip invalid/local-date/feb-29
-	-skip invalid/local-date/feb-30
-	-skip invalid/local-datetime/feb-29
-	-skip invalid/local-datetime/feb-30
-
 	-skip invalid/inline-table/trailing-comma  # Trailing comma should be error; not worth fixing as it'll be allowed in 1.1
 )
 

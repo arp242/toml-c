@@ -116,8 +116,6 @@ enum tokentype_t {
 	LBRACKET,
 	RBRACKET,
 	STRING,
-	DATETIME,
-	BOOL,
 };
 typedef enum tokentype_t tokentype_t;
 
@@ -726,7 +724,6 @@ static int parse_array(context_t *ctx, toml_array_t *arr) {
 			break;
 
 		switch (ctx->tok.tok) {
-			case DATETIME:
 			case STRING: {
 				/// set array kind if this will be the first entry
 				if (arr->kind == 0)
@@ -851,7 +848,6 @@ static int parse_keyval(context_t *ctx, toml_table_t *tab) {
 		return -1;
 
 	switch (ctx->tok.tok) {
-		case DATETIME:
 		case STRING: { // key = "value"
 			toml_keyval_t *keyval = create_keyval_in_table(ctx, tab, key);
 			if (!keyval)
@@ -1116,7 +1112,6 @@ toml_table_t *toml_parse(char *toml, char *errbuf, int errbufsz) {
 					goto fail;
 				break;
 
-			case DATETIME:
 			case STRING:
 				if (parse_keyval(&ctx, ctx.curtab))
 					goto fail;
@@ -1439,7 +1434,7 @@ static int scan_string(context_t *ctx, char *p, int lineno, bool dotisspecial) {
 		p += strspn(p, "0123456789.:+-Tt Zz"); /// forward thru the timestamp
 		for (; p[-1] == ' '; p--) /// squeeze out any spaces at end of string
 			;
-		set_token(ctx, DATETIME, lineno, orig, p - orig); /// tokenize
+		set_token(ctx, STRING, lineno, orig, p - orig); /// tokenize
 		return 0;
 	}
 
@@ -1582,6 +1577,8 @@ toml_table_t *toml_array_table(const toml_array_t *arr, int idx) {
 
 static int parse_millisec(const char *p, const char **endp);
 
+bool is_leap(int y) { return y % 4 == 0 && (y % 100 != 0 || y % 400 == 0); }
+
 int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 	if (!src_)
 		return -1;
@@ -1594,6 +1591,8 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 	/// YYYY-MM-DD
 	if (scan_date(p, &ret->year, &ret->month, &ret->day) == 0) {
 		if (ret->month < 1 || ret->day < 1 || ret->month > 12 || ret->day > 31)
+			return -1;
+		if (ret->month == 2 && ret->day > (is_leap(ret->year) ? 29 : 28))
 			return -1;
 		ret->kind = 'D';
 
