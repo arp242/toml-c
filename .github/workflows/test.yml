@@ -1,0 +1,16 @@
+name: 'test'
+on:   ['push', 'pull_request']
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
+        go: ['1.21']
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+    - run:
+        go install github.com/toml-lang/toml-test/cmd/toml-test@master
+        make check
