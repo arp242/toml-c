@@ -31,8 +31,6 @@ else
 	exit 1
 fi
 
-ls || dir
-
 failing=(
 	-skip invalid/inline-table/add             # Appending existing tables
 	-skip invalid/array/extending-table
