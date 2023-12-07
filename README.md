@@ -19,6 +19,10 @@ This can be used in two ways: as a library or in "header only mode":
 
 - For "library mode" build `libtoml.so.1.0` and `libtoml.a` by just typing `make`.
 
+Usage
+-----
+See `toml.h` and `examples`.
+
 Testing
 -------
 Run `make check` to run the tests; this requires [toml-test] to be in $PATH.

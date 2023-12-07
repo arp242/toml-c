@@ -51,25 +51,25 @@ struct toml_arritem_t {
 	toml_table_t *tab;
 };
 
-// TOML key = value pair.
+// TOML key/value pair.
 struct toml_keyval_t {
 	const char *key; // key to this value
 	int keylen;      // length of key.
 	const char *val; // the raw value
 };
 
-// TOML primitive.
+// Parsed TOML value.
 //
 // The string value s is a regular NULL-terminated C string, but the string
 // length is also given in sl since TOML values may contain NULL bytes. The
 // value is guaranteed to be correct UTF-8.
 struct toml_value_t {
-	bool ok;
+	bool ok; // Was this value present?
 	union {
-		toml_timestamp_t *ts; // ts must be freed after use
-		char             *s;  // string value; s must be freed after use
+		toml_timestamp_t *ts; // datetime; must be freed after use.
+		char             *s;  // string value; must be freed after use
 		int              sl;  // string length, excluding NULL.
-		int              b;   // bool value
+		bool             b;   // bool value
 		int64_t          i;   // int value
 		double           d;   // double value
 	} u;
@@ -98,6 +98,20 @@ struct toml_timestamp_t {
 	TOML_EXTERN toml_table_t *toml_parse_file (FILE *fp, char *errbuf, int errbufsz);
 	TOML_EXTERN void          toml_free       (toml_table_t *table);
 
+// Table functions.
+//
+// toml_table_len() gets the number of direct keys for this table;
+// toml_table_key() gets the nth direct key in this table.
+	TOML_EXTERN int           toml_table_len       (const toml_table_t *table);
+	TOML_EXTERN const char   *toml_table_key       (const toml_table_t *table, int keyidx, int *keylen);
+	TOML_EXTERN toml_value_t  toml_table_string    (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_value_t  toml_table_bool      (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_value_t  toml_table_int       (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_value_t  toml_table_double    (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_value_t  toml_table_timestamp (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_array_t *toml_table_array     (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_table_t *toml_table_table     (const toml_table_t *table, const char *key);
+
 // Array functions.
 	TOML_EXTERN int           toml_array_len       (const toml_array_t *array);
 	TOML_EXTERN toml_value_t  toml_array_string    (const toml_array_t *array, int idx);
@@ -107,28 +121,5 @@ struct toml_timestamp_t {
 	TOML_EXTERN toml_value_t  toml_array_timestamp (const toml_array_t *array, int idx);
 	TOML_EXTERN toml_array_t *toml_array_array     (const toml_array_t *array, int idx);
 	TOML_EXTERN toml_table_t *toml_array_table     (const toml_array_t *array, int idx);
-
-// Table functions.
-// toml_table_key => 0 if out of range.
-	TOML_EXTERN const char   *toml_table_key       (const toml_table_t *table, int keyidx, int *keylen);
-	TOML_EXTERN int           toml_table_len       (const toml_table_t *table);
-	TOML_EXTERN bool          toml_table_has_key   (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_value_t  toml_table_string    (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_value_t  toml_table_bool      (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_value_t  toml_table_int       (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_value_t  toml_table_double    (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_value_t  toml_table_timestamp (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_array_t *toml_table_array     (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_table_t *toml_table_table     (const toml_table_t *table, const char *key);
-
-// Unparsed values.
-	typedef const char *toml_unparsed_t;
-	toml_unparsed_t toml_table_unparsed  (const toml_table_t *table, const char *key);
-	toml_unparsed_t toml_array_unparsed  (const toml_array_t *array, int idx);
-	int             toml_value_string    (toml_unparsed_t s, char **ret, int *len);
-	int             toml_value_bool      (toml_unparsed_t s, int *ret);
-	int             toml_value_int       (toml_unparsed_t s, int64_t *ret);
-	int             toml_value_double    (toml_unparsed_t s, double *ret);
-	int             toml_value_timestamp (toml_unparsed_t s, toml_timestamp_t *ret);
 
 #endif // TOML_H

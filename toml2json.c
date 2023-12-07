@@ -4,6 +4,15 @@
 #include <string.h>
 #include "toml.h"
 
+typedef const char *toml_unparsed_t;
+toml_unparsed_t toml_table_unparsed  (const toml_table_t *table, const char *key);
+toml_unparsed_t toml_array_unparsed  (const toml_array_t *array, int idx);
+int             toml_value_string    (toml_unparsed_t s, char **ret, int *len);
+int             toml_value_bool      (toml_unparsed_t s, bool *ret);
+int             toml_value_int       (toml_unparsed_t s, int64_t *ret);
+int             toml_value_double    (toml_unparsed_t s, double *ret);
+int             toml_value_timestamp (toml_unparsed_t s, toml_timestamp_t *ret);
+
 static void print_escape_string(const char *s, int sl) {
 	for (int i = 0; i < sl; i++) {
 		char ch = s[i];
@@ -29,7 +38,7 @@ static void print_raw(const char *s) {
 	char *sval;
 	int slen;
 	int64_t ival;
-	int bval;
+	bool bval;
 	double dval;
 	toml_timestamp_t ts;
 

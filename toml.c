@@ -48,6 +48,16 @@ static char *STRNDUP(const char *s, size_t n) {
 	return p;
 }
 
+// Unparsed values.
+typedef const char *toml_unparsed_t;
+toml_unparsed_t toml_table_unparsed  (const toml_table_t *table, const char *key);
+toml_unparsed_t toml_array_unparsed  (const toml_array_t *array, int idx);
+int             toml_value_string    (toml_unparsed_t s, char **ret, int *len);
+int             toml_value_bool      (toml_unparsed_t s, bool *ret);
+int             toml_value_int       (toml_unparsed_t s, int64_t *ret);
+int             toml_value_double    (toml_unparsed_t s, double *ret);
+int             toml_value_timestamp (toml_unparsed_t s, toml_timestamp_t *ret);
+
 // Convert escape to UTF-8; return #bytes used in buf to encode the char, or -1
 // on error.
 // http://stackoverflow.com/questions/6240055/manually-converting-unicode-codepoints-into-utf-8-and-utf-16
@@ -732,7 +742,7 @@ static int valtype(const char *val) {
 	toml_timestamp_t ts;
 	if (*val == '\'' || *val == '"')
 		return 's';
-	if (toml_value_bool(val, 0) == 0)
+	if (toml_value_bool(val, false) == 0)
 		return 'b';
 	if (toml_value_int(val, 0) == 0)
 		return 'i';
@@ -1584,19 +1594,6 @@ const char *toml_table_key(const toml_table_t *tab, int keyidx, int *keylen) {
 	return 0;
 }
 
-bool toml_table_has_key(const toml_table_t *tab, const char *key) {
-	for (int i = 0; i < tab->nkval; i++)
-		if (strcmp(key, tab->kval[i]->key) == 0)
-			return true;
-	for (int i = 0; i < tab->narr; i++)
-		if (strcmp(key, tab->arr[i]->key) == 0)
-			return true;
-	for (int i = 0; i < tab->ntab; i++)
-		if (strcmp(key, tab->tab[i]->key) == 0)
-			return true;
-	return false;
-}
-
 toml_unparsed_t toml_table_unparsed(const toml_table_t *tab, const char *key) {
 	for (int i = 0; i < tab->nkval; i++)
 		if (strcmp(key, tab->kval[i]->key) == 0)
@@ -1718,18 +1715,18 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 }
 
 /* Raw to boolean */
-int toml_value_bool(toml_unparsed_t src, int *ret_) {
+int toml_value_bool(toml_unparsed_t src, bool *ret_) {
 	if (!src)
 		return -1;
-	int dummy;
-	int *ret = ret_ ? ret_ : &dummy;
+	bool dummy;
+	bool *ret = ret_ ? ret_ : &dummy;
 
 	if (strcmp(src, "true") == 0) {
-		*ret = 1;
+		*ret = true;
 		return 0;
 	}
 	if (strcmp(src, "false") == 0) {
-		*ret = 0;
+		*ret = false;
 		return 0;
 	}
 	return -1;

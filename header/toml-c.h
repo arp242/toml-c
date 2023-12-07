@@ -1,5 +1,8 @@
 #ifndef TOML_H
 #define TOML_H
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
 #ifdef _MSC_VER
 #pragma warning(disable : 4996)
 #endif
@@ -51,25 +54,25 @@ struct toml_arritem_t {
 	toml_table_t *tab;
 };
 
-// TOML key = value pair.
+// TOML key/value pair.
 struct toml_keyval_t {
 	const char *key; // key to this value
 	int keylen;      // length of key.
 	const char *val; // the raw value
 };
 
-// TOML primitive.
+// Parsed TOML value.
 //
 // The string value s is a regular NULL-terminated C string, but the string
 // length is also given in sl since TOML values may contain NULL bytes. The
 // value is guaranteed to be correct UTF-8.
 struct toml_value_t {
-	bool ok;
+	bool ok; // Was this value present?
 	union {
-		toml_timestamp_t *ts; // ts must be freed after use
-		char             *s;  // string value; s must be freed after use
+		toml_timestamp_t *ts; // datetime; must be freed after use.
+		char             *s;  // string value; must be freed after use
 		int              sl;  // string length, excluding NULL.
-		int              b;   // bool value
+		bool             b;   // bool value
 		int64_t          i;   // int value
 		double           d;   // double value
 	} u;
@@ -98,6 +101,20 @@ struct toml_timestamp_t {
 	TOML_EXTERN toml_table_t *toml_parse_file (FILE *fp, char *errbuf, int errbufsz);
 	TOML_EXTERN void          toml_free       (toml_table_t *table);
 
+// Table functions.
+//
+// toml_table_len() gets the number of direct keys for this table;
+// toml_table_key() gets the nth direct key in this table.
+	TOML_EXTERN int           toml_table_len       (const toml_table_t *table);
+	TOML_EXTERN const char   *toml_table_key       (const toml_table_t *table, int keyidx, int *keylen);
+	TOML_EXTERN toml_value_t  toml_table_string    (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_value_t  toml_table_bool      (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_value_t  toml_table_int       (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_value_t  toml_table_double    (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_value_t  toml_table_timestamp (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_array_t *toml_table_array     (const toml_table_t *table, const char *key);
+	TOML_EXTERN toml_table_t *toml_table_table     (const toml_table_t *table, const char *key);
+
 // Array functions.
 	TOML_EXTERN int           toml_array_len       (const toml_array_t *array);
 	TOML_EXTERN toml_value_t  toml_array_string    (const toml_array_t *array, int idx);
@@ -108,31 +125,6 @@ struct toml_timestamp_t {
 	TOML_EXTERN toml_array_t *toml_array_array     (const toml_array_t *array, int idx);
 	TOML_EXTERN toml_table_t *toml_array_table     (const toml_array_t *array, int idx);
 
-// Table functions.
-// toml_table_key => 0 if out of range.
-	TOML_EXTERN const char   *toml_table_key       (const toml_table_t *table, int keyidx, int *keylen);
-	TOML_EXTERN int           toml_table_len       (const toml_table_t *table);
-	TOML_EXTERN bool          toml_table_has_key   (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_value_t  toml_table_string    (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_value_t  toml_table_bool      (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_value_t  toml_table_int       (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_value_t  toml_table_double    (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_value_t  toml_table_timestamp (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_array_t *toml_table_array     (const toml_table_t *table, const char *key);
-	TOML_EXTERN toml_table_t *toml_table_table     (const toml_table_t *table, const char *key);
-
-// Unparsed values.
-	typedef const char *toml_unparsed_t;
-	toml_unparsed_t toml_table_unparsed  (const toml_table_t *table, const char *key);
-	toml_unparsed_t toml_array_unparsed  (const toml_array_t *array, int idx);
-	int             toml_value_string    (toml_unparsed_t s, char **ret, int *len);
-	int             toml_value_bool      (toml_unparsed_t s, int *ret);
-	int             toml_value_int       (toml_unparsed_t s, int64_t *ret);
-	int             toml_value_double    (toml_unparsed_t s, double *ret);
-	int             toml_value_timestamp (toml_unparsed_t s, toml_timestamp_t *ret);
-
-
-#define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -142,7 +134,6 @@ struct toml_timestamp_t {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 
 
 #define ALIGN8(sz) (((sz) + 7) & ~7)
@@ -181,6 +172,16 @@ static char *STRNDUP(const char *s, size_t n) {
 	}
 	return p;
 }
+
+// Unparsed values.
+typedef const char *toml_unparsed_t;
+toml_unparsed_t toml_table_unparsed  (const toml_table_t *table, const char *key);
+toml_unparsed_t toml_array_unparsed  (const toml_array_t *array, int idx);
+int             toml_value_string    (toml_unparsed_t s, char **ret, int *len);
+int             toml_value_bool      (toml_unparsed_t s, bool *ret);
+int             toml_value_int       (toml_unparsed_t s, int64_t *ret);
+int             toml_value_double    (toml_unparsed_t s, double *ret);
+int             toml_value_timestamp (toml_unparsed_t s, toml_timestamp_t *ret);
 
 // Convert escape to UTF-8; return #bytes used in buf to encode the char, or -1
 // on error.
@@ -866,7 +867,7 @@ static int valtype(const char *val) {
 	toml_timestamp_t ts;
 	if (*val == '\'' || *val == '"')
 		return 's';
-	if (toml_value_bool(val, 0) == 0)
+	if (toml_value_bool(val, false) == 0)
 		return 'b';
 	if (toml_value_int(val, 0) == 0)
 		return 'i';
@@ -1718,19 +1719,6 @@ const char *toml_table_key(const toml_table_t *tab, int keyidx, int *keylen) {
 	return 0;
 }
 
-bool toml_table_has_key(const toml_table_t *tab, const char *key) {
-	for (int i = 0; i < tab->nkval; i++)
-		if (strcmp(key, tab->kval[i]->key) == 0)
-			return true;
-	for (int i = 0; i < tab->narr; i++)
-		if (strcmp(key, tab->arr[i]->key) == 0)
-			return true;
-	for (int i = 0; i < tab->ntab; i++)
-		if (strcmp(key, tab->tab[i]->key) == 0)
-			return true;
-	return false;
-}
-
 toml_unparsed_t toml_table_unparsed(const toml_table_t *tab, const char *key) {
 	for (int i = 0; i < tab->nkval; i++)
 		if (strcmp(key, tab->kval[i]->key) == 0)
@@ -1852,18 +1840,18 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 }
 
 /* Raw to boolean */
-int toml_value_bool(toml_unparsed_t src, int *ret_) {
+int toml_value_bool(toml_unparsed_t src, bool *ret_) {
 	if (!src)
 		return -1;
-	int dummy;
-	int *ret = ret_ ? ret_ : &dummy;
+	bool dummy;
+	bool *ret = ret_ ? ret_ : &dummy;
 
 	if (strcmp(src, "true") == 0) {
-		*ret = 1;
+		*ret = true;
 		return 0;
 	}
 	if (strcmp(src, "false") == 0) {
-		*ret = 0;
+		*ret = false;
 		return 0;
 	}
 	return -1;

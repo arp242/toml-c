@@ -15,10 +15,13 @@ SOLIB  = libtoml.so.1.0
 all: ${LIB} ${SOLIB} ${PROG} header/toml-c.h
 
 header/toml-c.h: ${HDRS} ${SRCS}
-	:                                    >header/toml-c.h
-	sed  's!#endif // TOML_H!!'  toml.h >>header/toml-c.h
-	sed  's!#include "toml.h"!!' toml.c >>header/toml-c.h
-	echo '#endif // TOML_H'             >>header/toml-c.h
+	@echo 'create $@'
+	@: >header/toml-c.h
+	@sed  '/#endif \/\/ TOML_H/d; /#define TOML_H/a#ifndef _POSIX_C_SOURCE\n#define _POSIX_C_SOURCE 200809L\n#endif' toml.h >>header/toml-c.h
+	@sed  '/#include "toml.h"/d; /_POSIX_C_SOURCE/d' toml.c >>header/toml-c.h
+	@echo '#endif // TOML_H' >>header/toml-c.h
+
+#sed  '!#include "toml.h"!d; !_POSIX_C_SOURCE!d' toml.c >>header/toml-c.h
 
 toml.o: toml.c ${HDRS}
 	${CC} ${CFLAGS} -c $<
