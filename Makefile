@@ -20,7 +20,7 @@ header/toml-c.h: ${HDRS} ${SRCS}
 	sed  's!#include "toml.h"!!' toml.c >>header/toml-c.h
 	echo '#endif // TOML_H'             >>header/toml-c.h
 
-*.o: ${HDRS}
+toml.o: toml.c ${HDRS}
 	${CC} ${CFLAGS} -c $<
 
 libtoml.a: ${OBJS}

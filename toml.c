@@ -1800,12 +1800,13 @@ int toml_value_int(toml_unparsed_t src, int64_t *ret_) {
 	return (errno || *endp) ? -1 : 0;
 }
 
-int toml_value_double_ex(toml_unparsed_t src, double *ret_, char *buf, int buflen) {
+int toml_value_double(toml_unparsed_t src, double *ret_) {
 	if (!src)
 		return -1;
 
+	char buf[100];
 	char *p = buf;
-	char *q = p + buflen;
+	char *q = p + sizeof(buf);
 	const char *s = src;
 	double dummy;
 	double *ret = ret_ ? ret_ : &dummy;
@@ -1862,11 +1863,6 @@ int toml_value_double_ex(toml_unparsed_t src, double *ret_, char *buf, int bufle
 	if (have_us && (isnan(*ret) || isinf(*ret)))
 		return -1;
 	return 0;
-}
-
-int toml_value_double(toml_unparsed_t src, double *ret_) {
-	char buf[100];
-	return toml_value_double_ex(src, ret_, buf, sizeof(buf));
 }
 
 int toml_value_string(toml_unparsed_t src, char **ret, int *len) {

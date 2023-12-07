@@ -32,7 +32,6 @@ static void print_raw(const char *s) {
 	int bval;
 	double dval;
 	toml_timestamp_t ts;
-	char dbuf[100];
 
 	if (toml_value_string(s, &sval, &slen) == 0) {
 		printf("{\"type\": \"string\",\"value\": \"");
@@ -43,8 +42,8 @@ static void print_raw(const char *s) {
 		printf("{\"type\": \"integer\",\"value\": \"%" PRId64 "\"}", ival);
 	} else if (toml_value_bool(s, &bval) == 0) {
 		printf("{\"type\": \"bool\",\"value\": \"%s\"}", bval ? "true" : "false");
-	} else if (toml_value_double_ex(s, &dval, dbuf, sizeof(dbuf)) == 0) {
-		printf("{\"type\": \"float\",\"value\": \"%s\"}", dbuf);
+	} else if (toml_value_double(s, &dval) == 0) {
+		printf("{\"type\": \"float\",\"value\": \"%0.17g\"}", dval);
 	} else if (toml_value_timestamp(s, &ts) == 0) {
 		char millisec[10];
 		if (ts.millisec)

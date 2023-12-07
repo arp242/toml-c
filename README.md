@@ -9,10 +9,13 @@ maintained, and has a number of errors. This library isn't compatible.
 
 Installation
 ------------
-This can be used in two ways: as a library or in "header mode":
+This can be used in two ways: as a library or in "header only mode":
 
-- For "header mode" just copy `header/toml-c.h` to you project and `#include
-  "toml-c.h"`.
+- "Header only mode" is to make it a bit easier to include this in a project:
+  just copy `header/toml-c.h` to your project and `#include <toml-c.h>` and
+  you're done – nothing else needed.
+
+  It's essentially just "cat toml.h toml.c > toml-c.h" wuth a bit of frobbing.
 
 - For "library mode" build `libtoml.so.1.0` and `libtoml.a` by just typing `make`.
 

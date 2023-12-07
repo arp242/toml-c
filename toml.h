@@ -129,7 +129,6 @@ struct toml_timestamp_t {
 	int             toml_value_bool      (toml_unparsed_t s, int *ret);
 	int             toml_value_int       (toml_unparsed_t s, int64_t *ret);
 	int             toml_value_double    (toml_unparsed_t s, double *ret);
-	int             toml_value_double_ex (toml_unparsed_t s, double *ret, char *buf, int buflen);
 	int             toml_value_timestamp (toml_unparsed_t s, toml_timestamp_t *ret);
 
 #endif // TOML_H
