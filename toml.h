@@ -86,7 +86,7 @@ struct toml_timestamp_t {
 	char kind;
 	int year, month, day;
 	int hour, minute, second, millisec;
-	char *z;
+	char z[10];
 };
 
 // toml_parse() parses a TOML document from a string. Returns 0 on error, with

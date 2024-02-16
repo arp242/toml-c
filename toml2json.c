@@ -65,9 +65,9 @@ static void print_raw(const char *s) {
 			millisec[0] = 0;
 		if (ts.kind == 'd' || ts.kind == 'l') {
 			printf("{\"type\": \"%s\",\"value\": \"%04d-%02d-%02dT%02d:%02d:%02d%s%s\"}",
-				(ts.z ? "datetime" : "datetime-local"),
+				(ts.kind == 'd' ? "datetime" : "datetime-local"),
 				ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, millisec,
-				(ts.z ? ts.z : ""));
+				(ts.kind == 'd' ? ts.z : ""));
 		} else if (ts.kind == 'D') {
 			printf("{\"type\": \"date-local\",\"value\": \"%04d-%02d-%02d\"}",
 				ts.year, ts.month, ts.day);
