@@ -1681,8 +1681,7 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 
 		if (*p) { /// parse and copy Z
 			ret->kind = 'd';
-			char *z = malloc(10);
-			ret->z = z;
+			char *z = ret->z;
 			if (*p == 'Z' || *p == 'z') {
 				*z++ = 'Z';
 				p++;

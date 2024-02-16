@@ -89,7 +89,7 @@ struct toml_timestamp_t {
 	char kind;
 	int year, month, day;
 	int hour, minute, second, millisec;
-	char *z;
+	char z[10];
 };
 
 // toml_parse() parses a TOML document from a string. Returns 0 on error, with
@@ -1808,8 +1808,7 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 
 		if (*p) { /// parse and copy Z
 			ret->kind = 'd';
-			char *z = malloc(10);
-			ret->z = z;
+			char *z = ret->z;
 			if (*p == 'Z' || *p == 'z') {
 				*z++ = 'Z';
 				p++;
