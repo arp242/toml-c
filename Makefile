@@ -39,7 +39,7 @@ install: all
 	install toml.h   ${DESTDIR}${PREFIX}/include
 	install ${LIB}   ${DESTDIR}${PREFIX}/lib
 	install ${SOLIB} ${DESTDIR}${PREFIX}/lib
-	sed 's!%%PREFIX%%!${PREFIX}!' ${PCFILE} >${DESTDIR}${PREFIX}lib/pkgconfig
+	sed 's!%%PREFIX%%!${PREFIX}!' ${PCFILE} >${DESTDIR}${PREFIX}/lib/pkgconfig/${PCFILE}
 
 check: ${PROG}
 	@./test.bash
