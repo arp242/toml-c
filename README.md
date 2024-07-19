@@ -15,7 +15,7 @@ This can be used in two ways: as a library or in "header only mode":
   just copy `header/toml-c.h` to your project and `#include <toml-c.h>` and
   you're done – nothing else needed.
 
-  It's essentially just "cat toml.h toml.c > toml-c.h" wuth a bit of frobbing.
+  It's essentially just "cat toml.h toml.c > toml-c.h" with a bit of frobbing.
 
 - For "library mode" build `libtoml.so.1.0` and `libtoml.a` by just typing `make`.
 
