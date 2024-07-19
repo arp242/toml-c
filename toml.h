@@ -68,7 +68,6 @@ struct toml_value_t {
 	union {
 		toml_timestamp_t *ts; // datetime; must be freed after use.
 		char             *s;  // string value; must be freed after use
-		int              sl;  // string length, excluding NULL.
 		bool             b;   // bool value
 		int64_t          i;   // int value
 		double           d;   // double value
@@ -84,7 +83,7 @@ struct toml_timestamp_t {
 	char kind;
 	int year, month, day;
 	int hour, minute, second, millisec;
-	char *z;
+	char z[10];
 };
 
 // toml_parse() parses a TOML document from a string. Returns 0 on error, with
