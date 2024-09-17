@@ -33,11 +33,11 @@ else
 fi
 
 failing=(
-	-skip invalid/inline-table/add             # Appending existing tables
-	-skip invalid/array/extending-table
+	-skip invalid/array/extending-table         # Appending existing tables
 	-skip invalid/table/append-with-dotted-keys-1
 	-skip invalid/table/append-with-dotted-keys-2
 	-skip invalid/inline-table/overwrite-02
+
 	-skip invalid/control/bare-cr              # Doesn't reject some forbidden control characters.
 	-skip invalid/control/bare-null
 	-skip invalid/control/comment-cr
@@ -56,9 +56,6 @@ failing=(
 	-skip invalid/encoding/utf16-key
 
 	-skip invalid/inline-table/trailing-comma  # Trailing comma should be error; not worth fixing as it'll be allowed in 1.1
-
-	-skip invalid/datetime/offset-overflow-hour  # Doesn't reject invalid dates
-	-skip invalid/datetime/offset-overflow-minute
 )
 
 "$tt" "$toml2json" ${failing[@]} "$@"

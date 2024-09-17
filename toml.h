@@ -79,14 +79,17 @@ struct toml_value_t {
 
 // Timestamp type; some values may be empty depending on the value of kind.
 struct toml_timestamp_t {
-	// 'd'atetime
-	// 'l'local-datetime
-	// 'D'ate-local
-	// 't'ime-local
+	// datetime type:
+	//
+	//   'd'atetime          Full date + time + TZ
+	//   'l'local-datetime   Full date + time but without TZ
+	//   'D'ate-local        Date only, without TZ
+	//   't'ime-local        Time only, without TZ
 	char kind;
+
 	int year, month, day;
 	int hour, minute, second, millisec;
-	char z[10];
+	int tz; // Timezone offset in minutes
 };
 
 // toml_parse() parses a TOML document from a string. Returns 0 on error, with
