@@ -64,10 +64,15 @@ static void print_raw(const char *s) {
 		else
 			millisec[0] = 0;
 		if (ts.kind == 'd' || ts.kind == 'l') {
+			char off[10];
+			off[0] = 'Z';
+			if (ts.tz > 0)
+				sprintf(off, "%c%02d:%02d", '+', ts.tz / 24, ts.tz % 24);
+
 			printf("{\"type\": \"%s\",\"value\": \"%04d-%02d-%02dT%02d:%02d:%02d%s%s\"}",
 				(ts.kind == 'd' ? "datetime" : "datetime-local"),
 				ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, millisec,
-				(ts.kind == 'd' ? ts.z : ""));
+				(ts.kind == 'd' ? off : ""));
 		} else if (ts.kind == 'D') {
 			printf("{\"type\": \"date-local\",\"value\": \"%04d-%02d-%02d\"}",
 				ts.year, ts.month, ts.day);
