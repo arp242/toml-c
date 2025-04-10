@@ -35,6 +35,8 @@ libtoml.so.1.0: ${OBJS}
 
 ${PROG}: ${LIB}
 
+toml-c-test: ${LIB}
+
 install: all
 	install -d ${DESTDIR}${PREFIX}/include ${DESTDIR}${PREFIX}/lib ${DESTDIR}${PREFIX}/lib/pkgconfig
 	install toml.h   ${DESTDIR}${PREFIX}/include
@@ -42,8 +44,11 @@ install: all
 	install ${SOLIB} ${DESTDIR}${PREFIX}/lib
 	sed 's!%%PREFIX%%!${PREFIX}!' ${PCFILE} >${DESTDIR}${PREFIX}/lib/pkgconfig/${PCFILE}
 
-check: ${PROG}
+check: ${PROG} toml-c-test
 	@./test.bash
+	@echo
+	@./toml-c-test
+
 
 clean:
-	rm -f *.o ${PROG} ${LIB} ${SOLIB}
+	rm -f *.o ${PROG} toml-c-test ${LIB} ${SOLIB}

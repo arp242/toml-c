@@ -70,8 +70,10 @@ struct toml_value_t {
 	bool ok; // Was this value present?
 	union {
 		toml_timestamp_t *ts; // datetime; must be freed after use.
-		char             *s;  // string value; must be freed after use
-		int              sl;  // string length, excluding NULL.
+		struct {
+			char         *s;  // string value; must be freed after use
+			int          sl;  // string length, excluding NULL.
+		};
 		bool             b;   // bool value
 		int64_t          i;   // int value
 		double           d;   // double value
@@ -162,7 +164,7 @@ static char *STRDUP(const char *s) {
 
 // some old platforms define strndup macro -- drop it.
 #undef strndup
-#define strndup(x) error - forbiden - use STRNDUP instead
+#define strndup(x) error - forbidden - use STRNDUP instead
 static char *STRNDUP(const char *s, size_t n) {
 	size_t len = strnlen(s, n);
 	char *p = malloc(len + 1);
