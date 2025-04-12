@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <inttypes.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include "toml.h"
@@ -52,7 +53,10 @@ static void print_raw(const char *s) {
 	} else if (toml_value_bool(s, &bval) == 0) {
 		printf("{\"type\": \"bool\",\"value\": \"%s\"}", bval ? "true" : "false");
 	} else if (toml_value_double(s, &dval) == 0) {
-		printf("{\"type\": \"float\",\"value\": \"%0.17g\"}", dval);
+		if (isnan(dval))
+			printf("{\"type\": \"float\",\"value\": \"nan\"}");
+		else
+			printf("{\"type\": \"float\",\"value\": \"%0.17g\"}", dval);
 	} else if (toml_value_timestamp(s, &ts) == 0) {
 		char millisec[10];
 		if (ts.millisec)

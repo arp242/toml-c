@@ -1,6 +1,7 @@
 CC     = cc
 PREFIX = /usr/local
-CFLAGS = -std=c99 -Wall -Wextra -Wimplicit-fallthrough -fPIC -O2 -g
+FPIC   = -fPIC
+CFLAGS = -std=c99 -Wall -Wextra -Wimplicit-fallthrough ${FPIC} -O2 -g
 
 HDRS   = toml.h
 SRCS   = toml.c

@@ -4,15 +4,17 @@ jobs:
   test:
     strategy:
       fail-fast: false
-      matrix:
-        #os:       ['ubuntu-latest', 'macos-latest', 'windows-latest']
-        os:       ['ubuntu-latest', 'macos-latest']
-        compiler: ['clang']
-        go:       ['1.21']
-    runs-on: ${{ matrix.os }}
+      matrix: {os: ['ubuntu-latest', 'macos-latest', 'windows-latest']}
 
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
-    - run: |
-        go install github.com/toml-lang/toml-test/cmd/toml-test@master
-        make check CC=clang
+    - uses: 'actions/setup-go@v5'
+      with: {go-version: '1.24'}
+    - uses: 'actions/checkout@v4'
+
+    - run: 'go install github.com/toml-lang/toml-test/cmd/toml-test@master'
+
+    - if:  runner.os != 'Windows'
+      run: 'make check CC=clang'
+    - if:  runner.os == 'Windows'
+      run: 'make check CC=gcc'

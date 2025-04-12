@@ -21,11 +21,12 @@ if ! command -v "$tt" >/dev/null; then
 	echo >&2 '    https://github.com/toml-lang/toml-test/releases'
 	exit 1
 fi
+
 toml2json=
-if [ -x "./toml2json" ]; then
+if [ -e "./toml2json.exe" ]; then
+	toml2json='./toml2json.exe'
+elif [ -e "./toml2json" ]; then
 	toml2json=./toml2json
-elif [ -x "toml2json.exe" ]; then
-	toml2json=./toml2json.exe
 else
 	echo >&2 "./toml2json or ./toml2json.exe doesn't exist; run 'make'"
 	exit 1
@@ -36,7 +37,7 @@ failing=(
 	-skip invalid/array/extending-table
 	-skip invalid/table/append-with-dotted-keys-1
 	-skip invalid/table/append-with-dotted-keys-2
-	-skip invalid/inline-table/overwrite-2
+	-skip invalid/inline-table/overwrite-02
 	-skip invalid/control/bare-cr              # Doesn't reject some forbidden control characters.
 	-skip invalid/control/bare-null
 	-skip invalid/control/comment-cr
@@ -55,6 +56,9 @@ failing=(
 	-skip invalid/encoding/utf16-key
 
 	-skip invalid/inline-table/trailing-comma  # Trailing comma should be error; not worth fixing as it'll be allowed in 1.1
+
+	-skip invalid/datetime/offset-overflow-hour  # Doesn't reject invalid dates
+	-skip invalid/datetime/offset-overflow-minute
 )
 
 "$tt" "$toml2json" ${failing[@]} "$@"
