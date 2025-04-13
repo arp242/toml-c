@@ -19,6 +19,7 @@ typedef struct toml_value_t     toml_value_t;
 typedef struct toml_timestamp_t toml_timestamp_t;
 typedef struct toml_keyval_t    toml_keyval_t;
 typedef struct toml_arritem_t   toml_arritem_t;
+typedef struct toml_pos_t       toml_pos_t;
 
 // TOML table.
 struct toml_table_t {
@@ -53,9 +54,15 @@ struct toml_arritem_t {
 
 // TOML key/value pair.
 struct toml_keyval_t {
-	const char *key; // key to this value
-	int keylen;      // length of key.
-	const char *val; // the raw value
+	const char *key;    // key to this value
+	int         keylen; // length of key.
+	const char *val;    // the raw value
+};
+
+// Token position.
+struct toml_pos_t {
+	int line;
+	int col;
 };
 
 // Parsed TOML value.
