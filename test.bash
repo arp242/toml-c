@@ -50,8 +50,6 @@ failing=(
 	-skip invalid/control/comment-ff
 	-skip invalid/encoding/bad-utf8-in-comment
 	-skip invalid/encoding/bad-codepoint
-
-	-skip invalid/encoding/utf16
 	-skip invalid/encoding/utf16-comment
 	-skip invalid/encoding/utf16-key
 

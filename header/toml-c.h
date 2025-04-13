@@ -426,8 +426,8 @@ static char *norm_lit_str(const char *src, int srclen, int *len, bool multiline,
 	return dst;
 }
 
-/* Convert src to raw unescaped utf-8 string.
- * Returns NULL if error with errmsg in errbuf. */
+// Convert src to raw unescaped utf-8 string. Returns NULL if error with errmsg
+// in errbuf.
 static char *norm_basic_str(const char *src, int srclen, int *len, bool multiline, bool is_key, char *errbuf, int errbufsz) {
 	const char *sp  = src;
 	const char *sq  = src + srclen;
@@ -605,8 +605,8 @@ static char *normalize_key(context_t *ctx, token_t strtok, int *keylen) {
 	return ret;
 }
 
-/* Look up key in tbl. Return 0 if not found, or
- * 'v'alue, 'a'rray or 't'able depending on the element. */
+// Look up key in tbl. Return 0 if not found, or 'v'alue, 'a'rray or 't'able
+// depending on the element.
 static int check_key(toml_table_t *tbl, const char *key, toml_keyval_t **ret_val, toml_array_t **ret_arr, toml_table_t **ret_tbl) {
 	int i;
 	void *dummy;
@@ -647,7 +647,7 @@ static int key_kind(toml_table_t *tbl, const char *key) {
 	return check_key(tbl, key, 0, 0, 0);
 }
 
-/* Create a keyval in the table. */
+// Create a keyval in the table.
 static toml_keyval_t *create_keyval_in_table(context_t *ctx, toml_table_t *tbl, token_t keytok) {
 	int keylen;
 	char *newkey = normalize_key(ctx, keytok, &keylen);
@@ -690,6 +690,10 @@ static toml_table_t *create_keytable_in_table(context_t *ctx, toml_table_t *tbl,
 		return 0;
 
 	toml_table_t *dest = 0;
+	// TODO: need to check all parts for:
+	//
+	//   [a]
+	//   [a.c]   # checks of "a.c" is defined, which is false.
 	if (check_key(tbl, newkey, 0, 0, &dest)) {
 		xfree(newkey);
 
@@ -771,7 +775,7 @@ static toml_arritem_t *create_value_in_array(context_t *ctx, toml_array_t *paren
 	return &parent->item[n];
 }
 
-/* Create an array in an array */
+// Create an array in an array.
 static toml_array_t *create_array_in_array(context_t *ctx,
 		toml_array_t *parent) {
 	const int n = parent->nitem;
@@ -791,7 +795,7 @@ static toml_array_t *create_array_in_array(context_t *ctx,
 	return ret;
 }
 
-/* Create a table in an array */
+// Create a table in an array
 static toml_table_t *create_table_in_array(context_t *ctx, toml_array_t *parent) {
 	int n = parent->nitem;
 	toml_arritem_t *base = expand_arritem(parent->item, n);
@@ -832,7 +836,7 @@ static inline int eat_token(context_t *ctx, tokentype_t typ, bool isdotspecial, 
 	return 0;
 }
 
-/* We are at '{ ... }'; parse the table. */
+// We are at '{ ... }'; parse the table.
 static int parse_inline_table(context_t *ctx, toml_table_t *tbl) {
 	if (eat_token(ctx, LBRACE, 1, FLINE))
 		return -1;
@@ -853,7 +857,7 @@ static int parse_inline_table(context_t *ctx, toml_table_t *tbl) {
 		if (ctx->tok.tok == NEWLINE)
 			return e_syntax(ctx, ctx->tok.lineno, "newline not allowed in inline table");
 
-		/* on comma, continue to scan for next keyval */
+		// On comma, continue to scan for next keyval.
 		if (ctx->tok.tok == COMMA) {
 			if (eat_token(ctx, COMMA, 1, FLINE))
 				return -1;
@@ -888,7 +892,7 @@ static int valtype(const char *val) {
 	return 'u'; /// unknown
 }
 
-/* We are at '[...]' */
+// We are at '[...]'
 static int parse_array(context_t *ctx, toml_array_t *arr) {
 	if (eat_token(ctx, LBRACKET, 0, FLINE))
 		return -1;
@@ -931,8 +935,8 @@ static int parse_array(context_t *ctx, toml_array_t *arr) {
 					return -1;
 				break;
 			}
-			case LBRACKET: { /* [ [array], [array] ... ] */
-				/* set the array kind if this will be the first entry */
+			case LBRACKET: { // [ [array], [array] ... ]
+				// set the array kind if this will be the first entry.
 				if (arr->kind == 0)
 					arr->kind = 'a';
 				else if (arr->kind != 'a')
@@ -945,8 +949,8 @@ static int parse_array(context_t *ctx, toml_array_t *arr) {
 					return -1;
 				break;
 			}
-			case LBRACE: { /* [ {table}, {table} ... ] */
-				/* set the array kind if this will be the first entry */
+			case LBRACE: { // [ {table}, {table} ... ]
+				// set the array kind if this will be the first entry.
 				if (arr->kind == 0)
 					arr->kind = 't';
 				else if (arr->kind != 't')
@@ -966,7 +970,7 @@ static int parse_array(context_t *ctx, toml_array_t *arr) {
 		if (skip_newlines(ctx, 0))
 			return -1;
 
-		/* on comma, continue to scan for next element */
+		// on comma, continue to scan for next element
 		if (ctx->tok.tok == COMMA) {
 			if (eat_token(ctx, COMMA, 0, FLINE))
 				return -1;
@@ -980,10 +984,10 @@ static int parse_array(context_t *ctx, toml_array_t *arr) {
 	return 0;
 }
 
-/* handle lines like these:
-   key = "value"
-   key = [ array ]
-   key = { table } */
+// Handle lines like:
+//   key = "value"
+//   key = [ array ]
+//   key = { table }
 static int parse_keyval(context_t *ctx, toml_table_t *tbl) {
 	if (tbl->readonly) {
 		return e_forbid(ctx, ctx->tok.lineno, "cannot insert new entry into existing table");
@@ -994,9 +998,9 @@ static int parse_keyval(context_t *ctx, toml_table_t *tbl) {
 		return -1;
 
 	if (ctx->tok.tok == DOT) {
-		/* handle inline dotted key. e.g.
-		   physical.color = "orange"
-		   physical.shape = "round" */
+		// Handle inline dotted key:
+		//   physical.color = "orange"
+		//   physical.shape = "round"
 		toml_table_t *subtbl = 0;
 		{
 			int keylen;
@@ -1043,7 +1047,7 @@ static int parse_keyval(context_t *ctx, toml_table_t *tbl) {
 
 			return 0;
 		}
-		case LBRACKET: { /* key = [ array ] */
+		case LBRACKET: { // key = [ array ]
 			toml_array_t *arr = create_keyarray_in_table(ctx, tbl, key, 0);
 			if (!arr)
 				return -1;
@@ -1051,7 +1055,7 @@ static int parse_keyval(context_t *ctx, toml_table_t *tbl) {
 				return -1;
 			return 0;
 		}
-		case LBRACE: { /* key = { table } */
+		case LBRACE: { // key = { table }
 			toml_table_t *nexttbl = create_keytable_in_table(ctx, tbl, key);
 			if (!nexttbl)
 				return -1;
@@ -1071,9 +1075,9 @@ struct tabpath_t {
 	token_t key[10];
 };
 
-/* at [x.y.z] or [[x.y.z]]
- * Scan forward and fill tabpath until it enters ] or ]]
- * There will be at least one entry on return. */
+// At [x.y.z] or [[x.y.z]]
+// Scan forward and fill tabpath until it enters ] or ]]
+// There will be at least one entry on return.
 static int fill_tabpath(context_t *ctx) {
 	// clear tpath
 	for (int i = 0; i < ctx->tpath.top; i++) {
@@ -1114,8 +1118,8 @@ static int fill_tabpath(context_t *ctx) {
 	return 0;
 }
 
-/* Walk tabpath from the root, and create new tables on the way.
- * Sets ctx->curtbl to the final table. */
+// Walk tabpath from the root, and create new tables on the way. Sets
+// ctx->curtbl to the final table.
 static int walk_tabpath(context_t *ctx) {
 	toml_table_t *curtbl = ctx->root; /// start from root
 
@@ -1168,16 +1172,16 @@ static int walk_tabpath(context_t *ctx) {
 	return 0;
 }
 
-/* handle lines like [x.y.z] or [[x.y.z]] */
+// handle lines like [x.y.z] or [[x.y.z]]
 static int parse_select(context_t *ctx) {
 	assert(ctx->tok.tok == LBRACKET);
 
-	/* true if [[ */
+	// true if [[
 	int llb = (ctx->tok.ptr + 1 < ctx->stop && ctx->tok.ptr[1] == '[');
-	/* need to detect '[[' on our own because next_token() will skip whitespace,
-	   and '[ [' would be taken as '[[', which is wrong. */
+	// Need to detect '[[' on our own because next_token() will skip whitespace,
+	// and '[ [' would be taken as '[[', which is wrong.
 
-	/* eat [ or [[ */
+	// eat [ or [[
 	if (eat_token(ctx, LBRACKET, 1, FLINE))
 		return -1;
 	if (llb) {
@@ -1189,23 +1193,23 @@ static int parse_select(context_t *ctx) {
 	if (fill_tabpath(ctx))
 		return -1;
 
-	/* For [x.y.z] or [[x.y.z]], remove z from tpath. */
+	// For [x.y.z] or [[x.y.z]], remove z from tpath.
 	token_t z = ctx->tpath.tok[ctx->tpath.top - 1];
 	xfree(ctx->tpath.key[ctx->tpath.top - 1]);
 	ctx->tpath.top--;
 
-	/* set up ctx->curtbl */
+	// Set up ctx->curtbl.
 	if (walk_tabpath(ctx))
 		return -1;
 
 	if (!llb) {
-		/* [x.y.z] -> create z = {} in x.y */
+		// [x.y.z] -> create z = {} in x.y
 		toml_table_t *curtbl = create_keytable_in_table(ctx, ctx->curtbl, z);
 		if (!curtbl)
 			return -1;
 		ctx->curtbl = curtbl;
 	} else {
-		/* [[x.y.z]] -> create z = [] in x.y */
+		// [[x.y.z]] -> create z = [] in x.y
 		toml_array_t *arr = 0;
 		{
 			int keylen;
@@ -1225,7 +1229,7 @@ static int parse_select(context_t *ctx) {
 		if (arr->kind != 't')
 			return e_syntax(ctx, z.lineno, "array mismatch");
 
-		/* add to z[] */
+		// add to z[]
 		toml_table_t *dest;
 		{
 			toml_table_t *t = create_table_in_array(ctx, arr);
@@ -1311,7 +1315,7 @@ toml_table_t *toml_parse(char *toml, char *errbuf, int errbufsz) {
 					goto fail;
 				break;
 
-			case LBRACKET: /* [ x.y.z ] or [[ x.y.z ]] */
+			case LBRACKET: // [ x.y.z ] or [[ x.y.z ]]
 				if (parse_select(&ctx))
 					goto fail;
 				break;
@@ -1453,7 +1457,7 @@ static void set_eof(context_t *ctx, int lineno) {
 	ctx->tok.eof = 1;
 }
 
-/* Scan p for n digits compositing entirely of [0-9] */
+// Scan p for n digits compositing entirely of [0-9]
 static int scan_digits(const char *p, int n) {
 	int ret = 0;
 	for (; n > 0 && isdigit(*p); n--, p++) {
@@ -1559,7 +1563,7 @@ static int scan_string(context_t *ctx, char *p, int lineno, bool dotisspecial) {
 					continue;
 				}
 				if (p[strspn(p, " \t\r")] == '\n')
-					continue; /* allow for line ending backslash */
+					continue; // allow for line ending backslash
 				return e_syntax(ctx, lineno, "bad escape char");
 			}
 			if (hexreq) {
@@ -1836,7 +1840,7 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 	return 0;
 }
 
-/* Raw to boolean */
+// Raw to boolean
 int toml_value_bool(toml_unparsed_t src, bool *ret_) {
 	if (!src)
 		return -1;
@@ -1854,7 +1858,7 @@ int toml_value_bool(toml_unparsed_t src, bool *ret_) {
 	return -1;
 }
 
-/* Raw to integer */
+// Raw to integer
 int toml_value_int(toml_unparsed_t src, int64_t *ret_) {
 	if (!src)
 		return -1;
