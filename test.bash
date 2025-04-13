@@ -38,7 +38,7 @@ failing=(
 	-skip invalid/table/append-with-dotted-keys-2
 	-skip invalid/inline-table/overwrite-02
 
-	-skip invalid/control/bare-cr              # Doesn't reject some forbidden control characters.
+	-skip invalid/control/bare-cr               # Doesn't reject some forbidden control characters.
 	-skip invalid/control/bare-null
 	-skip invalid/control/comment-cr
 	-skip invalid/control/comment-del

@@ -11,6 +11,5 @@ array: array.c
 table: table.c
 	${CC} ${CFLAGS} -o $@ $@.c
 
-
 clean:
 	rm -f array table

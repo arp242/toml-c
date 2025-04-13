@@ -87,25 +87,25 @@ static void print_raw(const char *s) {
 }
 
 static void print_array(toml_array_t *arr);
-static void print_table(toml_table_t *curtab) {
+static void print_table(toml_table_t *curtbl) {
 	const char *key;
 	int keylen;
 	const char *raw;
 	toml_array_t *arr;
-	toml_table_t *tab;
+	toml_table_t *tbl;
 
 	printf("{");
-	for (int i = 0; (key = toml_table_key(curtab, i, &keylen)) != 0; i++) {
+	for (int i = 0; (key = toml_table_key(curtbl, i, &keylen)) != 0; i++) {
 		printf("%s\"", i > 0 ? ",\n" : "");
 		print_escape_string(key, keylen);
 		printf("\":");
 
-		if ((raw = toml_table_unparsed(curtab, key)) != 0)
+		if ((raw = toml_table_unparsed(curtbl, key)) != 0)
 			print_raw(raw);
-		else if ((arr = toml_table_array(curtab, key)) != 0)
+		else if ((arr = toml_table_array(curtbl, key)) != 0)
 		  print_array(arr);
-		else if ((tab = toml_table_table(curtab, key)) != 0)
-		  print_table(tab);
+		else if ((tbl = toml_table_table(curtbl, key)) != 0)
+		  print_table(tbl);
 		else
 			abort();
 	}
@@ -113,12 +113,12 @@ static void print_table(toml_table_t *curtab) {
 }
 
 static void print_table_array(toml_array_t *curarr) {
-	toml_table_t *tab;
+	toml_table_t *tbl;
 
 	printf("[");
-	for (int i = 0; (tab = toml_array_table(curarr, i)) != 0; i++) {
+	for (int i = 0; (tbl = toml_array_table(curarr, i)) != 0; i++) {
 		printf("%s", i > 0 ? "," : "");
-		print_table(tab);
+		print_table(tbl);
 	}
 	printf("]");
 }
@@ -133,7 +133,7 @@ static void print_array(toml_array_t *curarr) {
 
 	const char *raw;
 	toml_array_t *arr;
-	toml_table_t *tab;
+	toml_table_t *tbl;
 
 	const int n = toml_array_len(curarr);
 	for (int i = 0; i < n; i++) {
@@ -144,8 +144,8 @@ static void print_array(toml_array_t *curarr) {
 			continue;
 		}
 
-		if ((tab = toml_array_table(curarr, i)) != 0) {
-			print_table(tab);
+		if ((tbl = toml_array_table(curarr, i)) != 0) {
+			print_table(tbl);
 			continue;
 		}
 
@@ -166,16 +166,16 @@ static void print_array(toml_array_t *curarr) {
 static void cat(FILE *fp) {
 	char errbuf[200];
 
-	toml_table_t *tab = toml_parse_file(fp, errbuf, sizeof(errbuf));
-	if (!tab) {
+	toml_table_t *tbl = toml_parse_file(fp, errbuf, sizeof(errbuf));
+	if (!tbl) {
 		fprintf(stderr, "ERROR: %s\n", errbuf);
 		exit(1);
 	}
 
-	print_table(tab);
+	print_table(tbl);
 	printf("\n");
 
-	toml_free(tab);
+	toml_free(tbl);
 }
 
 int main(int argc, const char *argv[]) {

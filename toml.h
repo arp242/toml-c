@@ -31,8 +31,8 @@ struct toml_table_t {
 	toml_keyval_t **kval;
 	int narr;              // arrays in the table
 	toml_array_t **arr;
-	int ntab;              // tables in the table
-	toml_table_t **tab;
+	int ntbl;              // tables in the table
+	toml_table_t **tbl;
 };
 
 // TOML array.
@@ -48,7 +48,7 @@ struct toml_arritem_t {
 	int valtype; // for value kind: 'i'nt, 'd'ouble, 'b'ool, 's'tring, 't'ime, 'D'ate, 'T'imestamp
 	char *val;
 	toml_array_t *arr;
-	toml_table_t *tab;
+	toml_table_t *tbl;
 };
 
 // TOML key/value pair.

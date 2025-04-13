@@ -3,8 +3,6 @@ C library for parsing TOML 1.0. Passes all of [TOML test suite].
 This is a fork of https://github.com/cktan/tomlc99, as that didn't seem hugely
 maintained, and has a number of errors. This library isn't compatible.
 
-**Note: API is likely to change in the future!**
-
 [TOML test suite]: https://github.com/toml-lang/toml-test
 
 Installation
@@ -21,7 +19,7 @@ This can be used in two ways: as a library or in "header only mode":
 
 Usage
 -----
-See `toml.h` and `examples`.
+See `toml.h` and the `example` directory.
 
 Testing
 -------
