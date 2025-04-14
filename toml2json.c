@@ -64,8 +64,9 @@ static void print_raw(const char *s) {
 		else
 			millisec[0] = 0;
 		if (ts.kind == 'd' || ts.kind == 'l') {
-			char off[10];
+			char off[13];
 			off[0] = 'Z';
+			off[1] = 0;
 			if (ts.tz > 0)
 				sprintf(off, "%c%02d:%02d", '+', ts.tz / 24, ts.tz % 24);
 

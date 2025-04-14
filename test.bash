@@ -45,7 +45,7 @@ failing=(
 	-skip invalid/control/comment-lf
 	-skip invalid/control/comment-null
 	-skip invalid/control/comment-us
-	-skip invalid/control/rawmulti-cd
+	-skip invalid/control/rawmulti-cr
 	-skip invalid/control/multi-cr
 	-skip invalid/control/comment-ff
 	-skip invalid/encoding/bad-utf8-in-comment
