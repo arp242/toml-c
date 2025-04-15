@@ -37,21 +37,15 @@ failing=(
 	-skip invalid/table/append-with-dotted-keys-1
 	-skip invalid/table/append-with-dotted-keys-2
 	-skip invalid/inline-table/overwrite-02
-
-	-skip invalid/control/bare-cr               # Doesn't reject some forbidden control characters.
-	-skip invalid/control/bare-null
-	-skip invalid/control/comment-cr
-	-skip invalid/control/comment-del
-	-skip invalid/control/comment-lf
-	-skip invalid/control/comment-null
-	-skip invalid/control/comment-us
+	-skip invalid/control/comment-null          # Stops parsing on first NUL
+	-skip invalid/encoding/utf16-key
+	-skip invalid/encoding/utf16-comment
+	-skip invalid/encoding/bad-utf8-in-comment  # Doesn't parse UTF-8 in comments.
+	-skip invalid/encoding/bad-codepoint
+	-skip invalid/control/bare-null             # Doesn't reject some invalid CC
+	-skip invalid/control/bare-cr
 	-skip invalid/control/rawmulti-cr
 	-skip invalid/control/multi-cr
-	-skip invalid/control/comment-ff
-	-skip invalid/encoding/bad-utf8-in-comment
-	-skip invalid/encoding/bad-codepoint
-	-skip invalid/encoding/utf16-comment
-	-skip invalid/encoding/utf16-key
 
 	-skip invalid/inline-table/trailing-comma  # Trailing comma should be error; not worth fixing as it'll be allowed in 1.1
 )

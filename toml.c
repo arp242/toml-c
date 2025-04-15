@@ -637,8 +637,7 @@ static toml_arritem_t *create_value_in_array(context_t *ctx, toml_array_t *paren
 }
 
 // Create an array in an array.
-static toml_array_t *create_array_in_array(context_t *ctx,
-		toml_array_t *parent) {
+static toml_array_t *create_array_in_array(context_t *ctx, toml_array_t *parent) {
 	const int n = parent->nitem;
 	toml_arritem_t *base = expand_arritem(parent->item, n);
 	if (!base) {
@@ -1543,8 +1542,13 @@ static int next_token(context_t *ctx, bool dotisspecial) {
 	/// Make next tok
 	while (p < ctx->stop) {
 		if (*p == '#') { /// Skip comment. stop just before the \n.
-			for (p++; p < ctx->stop && *p != '\n'; p++)
+			for (p++; p < ctx->stop && *p != '\n'; p++) {
 				pos.col++;
+				if ((*p != '\t' && *p != '\r' && *p != '\n') && ((*p >= 0x00 && *p <= 0x1f) || *p == 0x7f))
+					return e_syntax(ctx, pos, "invalid control character");
+				if (*p == '\r' && p < ctx->stop + 1 && *(p + 1) != '\n')
+					return e_syntax(ctx, pos, "invalid control character");
+			}
 			continue;
 		}
 
