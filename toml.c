@@ -1501,7 +1501,7 @@ static int scan_string(context_t *ctx, char *p, toml_pos_t *pos, bool dotisspeci
 	}
 
 	// Datetime.
-	if (scan_date(p, 0, 0, 0) == 0 || scan_time(p, 0, 0, 0) == 0) {
+	if (!dotisspecial && (scan_date(p, 0, 0, 0) == 0 || scan_time(p, 0, 0, 0) == 0)) {
 		p += strspn(p, "0123456789.:+-Tt Zz"); /// forward thru the timestamp
 		for (; p[-1] == ' '; p--) /// squeeze out any spaces at end of string
 			;
