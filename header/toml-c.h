@@ -1638,7 +1638,7 @@ static int scan_string(context_t *ctx, char *p, toml_pos_t *pos, bool dotisspeci
 	}
 
 	// Datetime.
-	if (scan_date(p, 0, 0, 0) == 0 || scan_time(p, 0, 0, 0) == 0) {
+	if (!dotisspecial && (scan_date(p, 0, 0, 0) == 0 || scan_time(p, 0, 0, 0) == 0)) {
 		p += strspn(p, "0123456789.:+-Tt Zz"); /// forward thru the timestamp
 		for (; p[-1] == ' '; p--) /// squeeze out any spaces at end of string
 			;
@@ -1680,11 +1680,11 @@ static int next_token(context_t *ctx, bool dotisspecial) {
 	while (p < ctx->stop) {
 		if (*p == '#') { /// Skip comment. stop just before the \n.
 			for (p++; p < ctx->stop && *p != '\n'; p++) {
+				pos.col++;
 				if ((*p != '\t' && *p != '\r' && *p != '\n') && ((*p >= 0x00 && *p <= 0x1f) || *p == 0x7f))
 					return e_syntax(ctx, pos, "invalid control character");
 				if (*p == '\r' && p < ctx->stop + 1 && *(p + 1) != '\n')
 					return e_syntax(ctx, pos, "invalid control character");
-				pos.col++;
 			}
 			continue;
 		}

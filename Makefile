@@ -1,7 +1,8 @@
-CC     = cc
-PREFIX = /usr/local
-FPIC   = -fPIC
-CFLAGS = -std=c99 -Wall -Wextra -Wimplicit-fallthrough ${FPIC} -O2 -g
+CC               = cc
+PREFIX           = /usr/local
+FPIC             = -fPIC
+CFLAGS           = -std=c99 -Wall -Wextra -Wimplicit-fallthrough ${FPIC} -O2 -g
+SANITIZER_CFLAGS = -fsanitize=address -fsanitize=undefined
 
 HDRS   = toml.h
 SRCS   = toml.c
@@ -22,8 +23,6 @@ header/toml-c.h: ${HDRS} ${SRCS}
 	@sed  '/#include "toml.h"/d; /_POSIX_C_SOURCE/d' toml.c >>header/toml-c.h
 	@echo '#endif // TOML_H' >>header/toml-c.h
 
-#sed  '!#include "toml.h"!d; !_POSIX_C_SOURCE!d' toml.c >>header/toml-c.h
-
 toml.o: toml.c ${HDRS}
 	${CC} ${CFLAGS} -c $<
 
@@ -34,8 +33,10 @@ libtoml.so.1.0: ${OBJS}
 	${CC} ${CFLAGS} -shared -o $@ $^
 
 ${PROG}: ${LIB}
+	${CC} ${CFLAGS} -o ${PROG} ${SANITIZER_CFLAGS} toml.c toml2json.c
 
 toml-c-test: ${LIB}
+	${CC} ${CFLAGS} -o toml-c-test ${SANITIZER_CFLAGS} toml.c toml-c-test.c
 
 install: all
 	install -d ${DESTDIR}${PREFIX}/include ${DESTDIR}${PREFIX}/lib ${DESTDIR}${PREFIX}/lib/pkgconfig

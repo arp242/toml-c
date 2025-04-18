@@ -18,6 +18,8 @@ int main() {
 			fprintf(stderr, "toml-c-test: unknown.ok set\n");
 			fail = 1;
 		}
+		toml_free(tbl);
+		free(unknown.u.s);
 	}
 
 	{ // Make sure string length is good.
@@ -40,6 +42,8 @@ int main() {
 			fprintf(stderr, "toml-c-test: str.u.sl wrong value: %d\n", str.u.sl);
 			fail = 1;
 		}
+		toml_free(tbl);
+		free(str.u.s);
 	}
 
 	{ // e_syntax errors
