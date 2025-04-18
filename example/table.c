@@ -9,7 +9,7 @@ char *doc = "\n"
 	"[tbl.sub]\n"
 	"subkey = 'subvalue'\n";
 
-int main() {
+int main(void) {
 	char errbuf[200];
 	toml_table_t *tbl = toml_parse(doc, errbuf, sizeof(errbuf));
 	if (!tbl) {
