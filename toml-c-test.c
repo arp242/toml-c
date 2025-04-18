@@ -2,7 +2,7 @@
 #include <string.h>
 #include "toml.h"
 
-int main() {
+int main(void) {
 	char errbuf[200];
 	int fail = 0;
 
