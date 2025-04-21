@@ -3,7 +3,12 @@
 #
 # Run the toml-test compliance tests: https://github.com/toml-lang/toml-test
 
+# Decoder and encoder commands; leave encoder blank if writing TOML isn't supported.
 decoder="./toml2json"
+
+encoder=  # No encoder tests
+
+# Version of the TOML specification to test.
 toml=1.0.0
 
 # Skip known failures.
@@ -34,7 +39,7 @@ skip=(
 
 # Find toml-test
 tt=
-if [[ -x "./toml-test" ]]; then
+if [[ -x "./toml-test" ]] && [[ ! -d "./toml-test" ]]; then
 	tt="./toml-test"
 elif command -v "toml-test" >/dev/null; then
 	tt="toml-test"
@@ -54,4 +59,5 @@ if ! command -v "$tt" >/dev/null; then
 	exit 1
 fi
 
-"$tt" -toml="$toml" -skip-must-err ${skip[@]} "$@" -- "$decoder"
+# Run toml-test
+"$tt" test -toml="$toml" -skip-must-err ${skip[@]} -decoder="$decoder" -encoder="${encoder:-}" "$@"
