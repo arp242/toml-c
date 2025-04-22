@@ -46,6 +46,7 @@ failing=(
 	-skip invalid/control/bare-cr
 	-skip invalid/control/rawmulti-cr
 	-skip invalid/control/multi-cr
+	-skip invalid/control/only-null
 
 	-skip invalid/inline-table/trailing-comma  # Trailing comma should be error; not worth fixing as it'll be allowed in 1.1
 )

@@ -60,7 +60,7 @@ static void print_raw(const char *s) {
 	} else if (toml_value_timestamp(s, &ts) == 0) {
 		char millisec[10];
 		if (ts.millisec)
-			sprintf(millisec, ".%03d", ts.millisec);
+			snprintf(millisec, 10, ".%03d", ts.millisec);
 		else
 			millisec[0] = 0;
 		if (ts.kind == 'd' || ts.kind == 'l') {
@@ -68,7 +68,7 @@ static void print_raw(const char *s) {
 			off[0] = 'Z';
 			off[1] = 0;
 			if (ts.tz > 0)
-				sprintf(off, "%c%02d:%02d", '+', ts.tz / 24, ts.tz % 24);
+				snprintf(off, 13, "%c%02d:%02d", '+', ts.tz / 24, ts.tz % 24);
 
 			printf("{\"type\": \"%s\",\"value\": \"%04d-%02d-%02dT%02d:%02d:%02d%s%s\"}",
 				(ts.kind == 'd' ? "datetime" : "datetime-local"),
