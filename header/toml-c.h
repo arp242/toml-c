@@ -199,12 +199,10 @@ int             toml_value_timestamp (toml_unparsed_t s, toml_timestamp_t *ret);
 // Convert escape to UTF-8; return #bytes used in buf to encode the char, or -1
 // on error.
 // http://stackoverflow.com/questions/6240055/manually-converting-unicode-codepoints-into-utf-8-and-utf-16
-int read_unicode_escape(int64_t code, char buf[6]) {
+int read_unicode_escape(uint64_t code, char buf[6]) {
 	if (0xd800 <= code && code <= 0xdfff) /// UTF-16 surrogates
 		return -1;
 	if (0x10FFFF < code)
-		return -1;
-	if (code < 0)
 		return -1;
 	if (code <= 0x7F) { /// 0x00000000 - 0x0000007F: 0xxxxxxx
 		buf[0] = (unsigned char)code;
@@ -227,23 +225,6 @@ int read_unicode_escape(int64_t code, char buf[6]) {
 		buf[2] = (unsigned char)(0x80 | ((code >> 6) & 0x3f));
 		buf[3] = (unsigned char)(0x80 | (code & 0x3f));
 		return 4;
-	}
-	if (code <= 0x03FFFFFF) { /// 0x00200000 - 0x03FFFFFF: 111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-		buf[0] = (unsigned char)(0xf8 | (code >> 24));
-		buf[1] = (unsigned char)(0x80 | ((code >> 18) & 0x3f));
-		buf[2] = (unsigned char)(0x80 | ((code >> 12) & 0x3f));
-		buf[3] = (unsigned char)(0x80 | ((code >> 6) & 0x3f));
-		buf[4] = (unsigned char)(0x80 | (code & 0x3f));
-		return 5;
-	}
-	if (code <= 0x7FFFFFFF) { /// 0x04000000 - 0x7FFFFFFF: 1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-		buf[0] = (unsigned char)(0xfc | (code >> 30));
-		buf[1] = (unsigned char)(0x80 | ((code >> 24) & 0x3f));
-		buf[2] = (unsigned char)(0x80 | ((code >> 18) & 0x3f));
-		buf[3] = (unsigned char)(0x80 | ((code >> 12) & 0x3f));
-		buf[4] = (unsigned char)(0x80 | ((code >> 6) & 0x3f));
-		buf[5] = (unsigned char)(0x80 | (code & 0x3f));
-		return 6;
 	}
 	return -1;
 }
@@ -360,7 +341,7 @@ static toml_arritem_t *expand_arritem(toml_arritem_t *p, int n) {
 static uint8_t const u8_length[] = {1,1,1,1,1,1,1,1,0,0,0,0,2,2,3,4};
 #define u8length(s) u8_length[(((uint8_t *)(s))[0] & 0xFF) >> 4];
 
-static char *norm_lit_str(const char *src, int srclen, int *len, bool multiline, bool is_key, char *errbuf, int errbufsz) {
+static char *norm_lit_str(const char *src, int srclen, int *len, bool multiline, char *errbuf, int errbufsz) {
 	const char *sp  = src;
 	const char *sq  = src + srclen;
 	char       *dst = 0; /// will write to dst[] and return it
@@ -402,13 +383,8 @@ static char *norm_lit_str(const char *src, int srclen, int *len, bool multiline,
 			continue;
 		}
 
-		char ch = *sp++;
-		if (is_key && ch == '\n') {
-			xfree(dst);
-			snprintf(errbuf, errbufsz, "literal newlines not allowed in key");
-			return 0;
-		}
 		/// control characters other than Tab are not allowed
+		char ch = *sp++;
 		if ((0 <= ch && ch <= 0x08) || (0x0a <= ch && ch <= 0x1f) || ch == 0x7f) {
 			if (!(multiline && (ch == '\r' || ch == '\n'))) {
 				xfree(dst);
@@ -427,7 +403,7 @@ static char *norm_lit_str(const char *src, int srclen, int *len, bool multiline,
 
 // Convert src to raw unescaped utf-8 string. Returns NULL if error with errmsg
 // in errbuf.
-static char *norm_basic_str(const char *src, int srclen, int *len, bool multiline, bool is_key, char *errbuf, int errbufsz) {
+static char *norm_basic_str(const char *src, int srclen, int *len, bool multiline, char *errbuf, int errbufsz) {
 	const char *sp  = src;
 	const char *sq  = src + srclen;
 	char       *dst = 0; /// will write to dst[] and return it
@@ -471,11 +447,6 @@ static char *norm_basic_str(const char *src, int srclen, int *len, bool multilin
 		}
 
 		char ch = *sp++;
-		if (is_key && ch == '\n') {
-			xfree(dst);
-			snprintf(errbuf, errbufsz, "literal newlines not allowed in key");
-			return 0;
-		}
 		if (ch != '\\') {
 			/// must be escaped: U+0000 to U+0008, U+000A to U+001F, U+007F
 			if ((ch >= 0 && ch <= 0x08) || (ch >= 0x0a && ch <= 0x1f) || ch == 0x7f) {
@@ -490,6 +461,7 @@ static char *norm_basic_str(const char *src, int srclen, int *len, bool multilin
 			continue;
 		}
 
+		// TODO: unreachable, I think?
 		if (sp >= sq) { /// ch was backslash. we expect the escape char.
 			snprintf(errbuf, errbufsz, "last backslash is invalid");
 			xfree(dst);
@@ -507,9 +479,11 @@ static char *norm_basic_str(const char *src, int srclen, int *len, bool multilin
 		switch (ch) {
 			case 'u':
 			case 'U': {
-				int64_t ucs = 0;
+				uint64_t ucs = 0;
 				int nhex = (ch == 'u' ? 4 : 8);
 				for (int i = 0; i < nhex; i++) {
+					// TODO: unreachable I think, as scan_string() already
+					// guarantees exactly 4 or 8 hex chars.
 					if (sp >= sq) {
 						snprintf(errbuf, errbufsz, "\\%c expected %d hex chars", ch, nhex);
 						xfree(dst);
@@ -523,6 +497,7 @@ static char *norm_basic_str(const char *src, int srclen, int *len, bool multilin
 						v = ch - 'A' + 10;
 					else if ('a' <= ch && ch <= 'f')
 						v = (ch ^ 0x20) - 'A' + 10;
+					// TODO: also unrechable, as per above.
 					if (v == -1) {
 						snprintf(errbuf, errbufsz, "invalid hex chars for \\u or \\U");
 						xfree(dst);
@@ -538,14 +513,16 @@ static char *norm_basic_str(const char *src, int srclen, int *len, bool multilin
 				}
 				off += n;
 			}; continue;
-			case 'b':  ch = '\b';  break;
-			case 't':  ch = '\t';  break;
-			case 'n':  ch = '\n';  break;
-			case 'f':  ch = '\f';  break;
-			case 'r':  ch = '\r';  break;
-			case '"':  ch = '"';   break;
+			case 'b':  ch = '\b'; break;
+			case 't':  ch = '\t'; break;
+			case 'n':  ch = '\n'; break;
+			case 'f':  ch = '\f'; break;
+			case 'r':  ch = '\r'; break;
+			case '"':  ch = '"';  break;
 			case '\\': ch = '\\'; break;
 			default:
+				// TODO: unrechable, I think, as scan_string() already
+				// guarantees correct char.
 				snprintf(errbuf, errbufsz, "illegal escape char \\%c", ch);
 				xfree(dst);
 				return 0;
@@ -568,18 +545,14 @@ static char *normalize_key(context_t *ctx, token_t strtok, int *keylen) {
 
 	// Quoted string
 	if (ch == '\'' || ch == '\"') {
-		/// if ''' or """, take 3 chars off front and back. Else, take 1 char off.
-		bool multiline = (sp[1] == ch && sp[2] == ch);
-		if (multiline)
-			sp += 3, sq -= 3;
-		else
-			sp++, sq--;
+		/// Take " or ' off from and back.
+		sp++, sq--;
 
 		char ebuf[80];
 		if (ch == '\'')
-			ret = norm_lit_str(sp, sq - sp, keylen, multiline, true, ebuf, sizeof(ebuf));
+			ret = norm_lit_str(sp, sq - sp, keylen, false, ebuf, sizeof(ebuf));
 		else
-			ret = norm_basic_str(sp, sq - sp, keylen, multiline, true, ebuf, sizeof(ebuf));
+			ret = norm_basic_str(sp, sq - sp, keylen, false, ebuf, sizeof(ebuf));
 		if (!ret) {
 			e_syntax(ctx, strtok.pos, ebuf);
 			return 0;
@@ -882,7 +855,7 @@ static int valtype(const char *val) {
 	if (toml_value_timestamp(val, &ts) == 0) {
 		if (ts.year && ts.hour)
 			return 'T'; /// timestamp
-		if (ts.year)
+		if (ts.year) // TODO: never reached?
 			return 'D'; /// date
 		return 't';   /// time
 	}
@@ -1111,7 +1084,7 @@ static int fill_tblpath(context_t *ctx) {
 			return -1;
 	}
 
-	if (ctx->tpath.top <= 0)
+	if (ctx->tpath.top <= 0) // TODO: never reached?
 		return e_syntax(ctx, ctx->tok.pos, "empty table selector");
 	return 0;
 }
@@ -1243,7 +1216,7 @@ static int parse_select(context_t *ctx) {
 		ctx->curtbl = dest;
 	}
 
-	if (ctx->tok.tok != RBRACKET)
+	if (ctx->tok.tok != RBRACKET) // TODO: never reached
 		return e_syntax(ctx, ctx->tok.pos, "expected ']'");
 	if (aot) {
 		if (!(ctx->tok.ptr + 1 < ctx->stop && ctx->tok.ptr[1] == ']'))
@@ -1584,7 +1557,7 @@ static int scan_string(context_t *ctx, char *p, toml_pos_t *pos, bool dotisspeci
 				continue;
 			}
 		}
-		if (escape)
+		if (escape) // TODO: unreachable, I think?
 			return e_syntax(ctx, *pos, "expected an escape char");
 		if (hexreq)
 			return e_syntax(ctx, *pos, "expected more hex char");
@@ -1651,7 +1624,7 @@ static int scan_string(context_t *ctx, char *p, toml_pos_t *pos, bool dotisspeci
 		if (p[0] == '.') { /// Subseconds
 			int n = strspn(++p, "0123456789");
 			if (n == 0)
-				return e_syntax(ctx, *pos, "invalid text after '.'");
+				return e_syntax(ctx, *pos, "extra chars after '.' X");
 			p += n;
 		}
 		for (; p[-1] == ' '; p--) /// squeeze out any spaces at end of string
@@ -1669,7 +1642,7 @@ static int scan_string(context_t *ctx, char *p, toml_pos_t *pos, bool dotisspeci
 			if (p[0] == '.') { /// Subseconds
 				int n = strspn(++p, "0123456789");
 				if (n == 0)
-					return e_syntax(ctx, *pos, "invalid text after '.'");
+					return e_syntax(ctx, *pos, "extra chars after '.'");
 				p += n;
 			}
 		}
@@ -2081,9 +2054,9 @@ int toml_value_string(toml_unparsed_t src, char **ret, int *len) {
 	///     sq points to one char beyond last valid char.
 	///     string len is (sq - sp).
 	if (qchar == '\'')
-		*ret = norm_lit_str(sp, sq - sp, len, multiline, false, 0, 0);
+		*ret = norm_lit_str(sp, sq - sp, len, multiline, 0, 0);
 	else
-		*ret = norm_basic_str(sp, sq - sp, len, multiline, false, 0, 0);
+		*ret = norm_basic_str(sp, sq - sp, len, multiline, 0, 0);
 	return *ret ? 0 : -1;
 }
 

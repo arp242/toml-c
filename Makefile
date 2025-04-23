@@ -50,5 +50,10 @@ check: toml2json toml-c-test
 	@echo
 	@./toml-c-test
 
+report: check
+	@[ -f toml2json-toml.gcda ] && mv toml2json-toml.gcda toml.gcda ||:
+	@[ -f toml2json-toml.gcno ] && mv toml2json-toml.gcno toml.gcno ||:
+	gcov -kt toml.c
+
 clean:
 	rm -f *.o *.gcov *.gcda *.gcno toml2json toml-c-test ${LIB} ${SOLIB}
