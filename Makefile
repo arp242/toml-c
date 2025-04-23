@@ -1,20 +1,20 @@
-CC               = cc
-PREFIX           = /usr/local
-FPIC             = -fPIC
-CFLAGS           = -std=c99 -Wall -Wextra -Wimplicit-fallthrough ${FPIC} -O2 -g
-SANITIZER_CFLAGS = -fsanitize=address -fsanitize=undefined
+CC        = cc
+PREFIX    = /usr/local
+FPIC      = -fPIC
+CFLAGS    = -std=c99 -Wall -Wextra -Wimplicit-fallthrough ${FPIC} -O2 -g
+SANITIZER = -fsanitize=address -fsanitize=undefined
+#COVERAGE  = -g -O0 --coverage -lgcov -fprofile-arcs -ftest-coverage
 
 HDRS   = toml.h
 SRCS   = toml.c
 OBJS   = ${SRCS:.c=.o}
 PCFILE = libtoml.pc
-PROG   = toml2json
 LIB    = libtoml.a
 SOLIB  = libtoml.so.1.0
 
 .PHONY: all clean install check
 
-all: ${LIB} ${SOLIB} ${PROG} header/toml-c.h
+all: ${LIB} ${SOLIB} toml2json toml-c-test header/toml-c.h
 
 header/toml-c.h: ${HDRS} ${SRCS}
 	@echo 'create $@'
@@ -32,11 +32,11 @@ libtoml.a: ${OBJS}
 libtoml.so.1.0: ${OBJS}
 	${CC} ${CFLAGS} -shared -o $@ $^
 
-${PROG}: ${LIB}
-	${CC} ${CFLAGS} -o ${PROG} ${SANITIZER_CFLAGS} toml.c toml2json.c
+toml2json: toml2json.c ${HDRS} ${SRCS}
+	${CC} ${CFLAGS} -o toml2json ${SANITIZER} ${COVERAGE} toml.c toml2json.c
 
-toml-c-test: ${LIB}
-	${CC} ${CFLAGS} -o toml-c-test ${SANITIZER_CFLAGS} toml.c toml-c-test.c
+toml-c-test: toml-c-test.c ${HDRS} ${SRCS}
+	${CC} ${CFLAGS} -o toml-c-test ${SANITIZER} ${COVERAGE} toml.c toml-c-test.c
 
 install: all
 	install -d ${DESTDIR}${PREFIX}/include ${DESTDIR}${PREFIX}/lib ${DESTDIR}${PREFIX}/lib/pkgconfig
@@ -45,11 +45,10 @@ install: all
 	install ${SOLIB} ${DESTDIR}${PREFIX}/lib
 	sed 's!%%PREFIX%%!${PREFIX}!' ${PCFILE} >${DESTDIR}${PREFIX}/lib/pkgconfig/${PCFILE}
 
-check: ${PROG} toml-c-test
+check: toml2json toml-c-test
 	@./test.bash
 	@echo
 	@./toml-c-test
 
-
 clean:
-	rm -f *.o ${PROG} toml-c-test ${LIB} ${SOLIB}
+	rm -f *.o *.gcov *.gcda *.gcno toml2json toml-c-test ${LIB} ${SOLIB}

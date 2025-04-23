@@ -3,6 +3,9 @@
 *.a
 *.gch
 *.exe
+*.gcda
+*.gcno
+*.gcov
 /toml2json
 /toml-c-test
 /libtoml.so.1.0

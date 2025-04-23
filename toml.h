@@ -65,25 +65,6 @@ struct toml_pos_t {
 	int col;
 };
 
-// Parsed TOML value.
-//
-// The string value s is a regular NULL-terminated C string, but the string
-// length is also given in sl since TOML values may contain NULL bytes. The
-// value is guaranteed to be correct UTF-8.
-struct toml_value_t {
-	bool ok; // Was this value present?
-	union {
-		toml_timestamp_t *ts; // datetime; must be freed after use.
-		struct {
-			char         *s;  // string value; must be freed after use
-			int          sl;  // string length, excluding NULL.
-		};
-		bool             b;   // bool value
-		int64_t          i;   // int value
-		double           d;   // double value
-	} u;
-};
-
 // Timestamp type; some values may be empty depending on the value of kind.
 struct toml_timestamp_t {
 	// datetime type:
@@ -98,6 +79,26 @@ struct toml_timestamp_t {
 	int hour, minute, second, millisec;
 	int tz; // Timezone offset in minutes
 };
+
+// Parsed TOML value.
+//
+// The string value s is a regular NULL-terminated C string, but the string
+// length is also given in sl since TOML values may contain NULL bytes. The
+// value is guaranteed to be correct UTF-8.
+struct toml_value_t {
+	bool ok; // Was this value present?
+	union {
+		toml_timestamp_t ts; // datetime; must be freed after use.
+		struct {
+			char         *s;  // string value; must be freed after use
+			int          sl;  // string length, excluding NULL.
+		};
+		bool             b;   // bool value
+		int64_t          i;   // int value
+		double           d;   // double value
+	} u;
+};
+
 
 // toml_parse() parses a TOML document from a string. Returns 0 on error, with
 // the error message stored in errbuf.

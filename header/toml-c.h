@@ -68,25 +68,6 @@ struct toml_pos_t {
 	int col;
 };
 
-// Parsed TOML value.
-//
-// The string value s is a regular NULL-terminated C string, but the string
-// length is also given in sl since TOML values may contain NULL bytes. The
-// value is guaranteed to be correct UTF-8.
-struct toml_value_t {
-	bool ok; // Was this value present?
-	union {
-		toml_timestamp_t *ts; // datetime; must be freed after use.
-		struct {
-			char         *s;  // string value; must be freed after use
-			int          sl;  // string length, excluding NULL.
-		};
-		bool             b;   // bool value
-		int64_t          i;   // int value
-		double           d;   // double value
-	} u;
-};
-
 // Timestamp type; some values may be empty depending on the value of kind.
 struct toml_timestamp_t {
 	// datetime type:
@@ -101,6 +82,26 @@ struct toml_timestamp_t {
 	int hour, minute, second, millisec;
 	int tz; // Timezone offset in minutes
 };
+
+// Parsed TOML value.
+//
+// The string value s is a regular NULL-terminated C string, but the string
+// length is also given in sl since TOML values may contain NULL bytes. The
+// value is guaranteed to be correct UTF-8.
+struct toml_value_t {
+	bool ok; // Was this value present?
+	union {
+		toml_timestamp_t ts; // datetime; must be freed after use.
+		struct {
+			char         *s;  // string value; must be freed after use
+			int          sl;  // string length, excluding NULL.
+		};
+		bool             b;   // bool value
+		int64_t          i;   // int value
+		double           d;   // double value
+	} u;
+};
+
 
 // toml_parse() parses a TOML document from a string. Returns 0 on error, with
 // the error message stored in errbuf.
@@ -1073,9 +1074,9 @@ struct tabpath_t {
 };
 
 // At [x.y.z] or [[x.y.z]]
-// Scan forward and fill tabpath until it enters ] or ]]
+// Scan forward and fill tblpath until it enters ] or ]]
 // There will be at least one entry on return.
-static int fill_tabpath(context_t *ctx) {
+static int fill_tblpath(context_t *ctx) {
 	// clear tpath
 	for (int i = 0; i < ctx->tpath.top; i++) {
 		char **p = &ctx->tpath.key[i];
@@ -1115,7 +1116,7 @@ static int fill_tabpath(context_t *ctx) {
 	return 0;
 }
 
-// Walk tabpath from the root, and create new tables on the way. Sets
+// Walk tblpath from the root, and create new tables on the way. Sets
 // ctx->curtbl to the final table.
 static int walk_tabpath(context_t *ctx) {
 	toml_table_t *curtbl = ctx->root; /// start from root
@@ -1188,7 +1189,7 @@ static int parse_select(context_t *ctx) {
 			return -1;
 	}
 
-	if (fill_tabpath(ctx))
+	if (fill_tblpath(ctx))
 		return -1;
 
 	// For [x.y.z] or [[x.y.z]], remove z from tpath.
@@ -1485,6 +1486,15 @@ static bool scan_time(const char *p, int *hh, int *mm, int *ss) {
 	if (ss)
 		*ss = second;
 	return (hour >= 0 && minute >= 0 && second >= 0);
+}
+
+static int parse_millisec(const char *p, const char **endp) {
+	int ret  = 0;
+	int unit = 100; /// unit in millisec
+	for (; '0' <= *p && *p <= '9'; p++, unit /= 10)
+		ret += (*p - '0') * unit;
+	*endp = p;
+	return ret;
 }
 
 static bool scan_offset(const char *p, int *tz) {
@@ -1820,8 +1830,6 @@ toml_table_t *toml_array_table(const toml_array_t *arr, int idx) {
 	return (0 <= idx && idx < arr->nitem) ? arr->item[idx].tbl : 0;
 }
 
-static int parse_millisec(const char *p, const char **endp);
-
 bool is_leap(int y) { return y % 4 == 0 && (y % 100 != 0 || y % 400 == 0); }
 
 int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
@@ -2108,15 +2116,9 @@ toml_value_t toml_array_double(const toml_array_t *arr, int idx) {
 }
 
 toml_value_t toml_array_timestamp(const toml_array_t *arr, int idx) {
-	toml_timestamp_t ts;
 	toml_value_t ret;
 	memset(&ret, 0, sizeof(ret));
-	ret.ok = (toml_value_timestamp(toml_array_unparsed(arr, idx), &ts) == 0);
-	if (ret.ok) {
-		ret.ok = !!(ret.u.ts = malloc(sizeof(*ret.u.ts)));
-		if (ret.ok)
-			*ret.u.ts = ts;
-	}
+	ret.ok = (toml_value_timestamp(toml_array_unparsed(arr, idx), &ret.u.ts) == 0);
 	return ret;
 }
 
@@ -2151,24 +2153,9 @@ toml_value_t toml_table_double(const toml_table_t *tbl, const char *key) {
 }
 
 toml_value_t toml_table_timestamp(const toml_table_t *tbl, const char *key) {
-	toml_timestamp_t ts;
 	toml_value_t ret;
 	memset(&ret, 0, sizeof(ret));
-	ret.ok = (toml_value_timestamp(toml_table_unparsed(tbl, key), &ts) == 0);
-	if (ret.ok) {
-		ret.ok = !!(ret.u.ts = malloc(sizeof(*ret.u.ts)));
-		if (ret.ok)
-			*ret.u.ts = ts;
-	}
-	return ret;
-}
-
-static int parse_millisec(const char *p, const char **endp) {
-	int ret  = 0;
-	int unit = 100; /// unit in millisec
-	for (; '0' <= *p && *p <= '9'; p++, unit /= 10)
-		ret += (*p - '0') * unit;
-	*endp = p;
+	ret.ok = (toml_value_timestamp(toml_table_unparsed(tbl, key), &ret.u.ts) == 0);
 	return ret;
 }
 #endif // TOML_H

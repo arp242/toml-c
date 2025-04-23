@@ -17,4 +17,4 @@ jobs:
     - if:  runner.os != 'Windows'
       run: 'make check CC=clang'
     - if:  runner.os == 'Windows'
-      run: 'make check CC=gcc SANITIZER_CFLAGS='
+      run: 'make check CC=gcc SANITIZER='

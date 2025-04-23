@@ -1350,6 +1350,15 @@ static bool scan_time(const char *p, int *hh, int *mm, int *ss) {
 	return (hour >= 0 && minute >= 0 && second >= 0);
 }
 
+static int parse_millisec(const char *p, const char **endp) {
+	int ret  = 0;
+	int unit = 100; /// unit in millisec
+	for (; '0' <= *p && *p <= '9'; p++, unit /= 10)
+		ret += (*p - '0') * unit;
+	*endp = p;
+	return ret;
+}
+
 static bool scan_offset(const char *p, int *tz) {
 	int hour   = scan_digits(p, 2);
 	int minute = (hour >= 0 && p[2] == ':') ? scan_digits(p + 3, 2) : -1;
@@ -1683,8 +1692,6 @@ toml_table_t *toml_array_table(const toml_array_t *arr, int idx) {
 	return (0 <= idx && idx < arr->nitem) ? arr->item[idx].tbl : 0;
 }
 
-static int parse_millisec(const char *p, const char **endp);
-
 bool is_leap(int y) { return y % 4 == 0 && (y % 100 != 0 || y % 400 == 0); }
 
 int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
@@ -1971,15 +1978,9 @@ toml_value_t toml_array_double(const toml_array_t *arr, int idx) {
 }
 
 toml_value_t toml_array_timestamp(const toml_array_t *arr, int idx) {
-	toml_timestamp_t ts;
 	toml_value_t ret;
 	memset(&ret, 0, sizeof(ret));
-	ret.ok = (toml_value_timestamp(toml_array_unparsed(arr, idx), &ts) == 0);
-	if (ret.ok) {
-		ret.ok = !!(ret.u.ts = malloc(sizeof(*ret.u.ts)));
-		if (ret.ok)
-			*ret.u.ts = ts;
-	}
+	ret.ok = (toml_value_timestamp(toml_array_unparsed(arr, idx), &ret.u.ts) == 0);
 	return ret;
 }
 
@@ -2014,23 +2015,8 @@ toml_value_t toml_table_double(const toml_table_t *tbl, const char *key) {
 }
 
 toml_value_t toml_table_timestamp(const toml_table_t *tbl, const char *key) {
-	toml_timestamp_t ts;
 	toml_value_t ret;
 	memset(&ret, 0, sizeof(ret));
-	ret.ok = (toml_value_timestamp(toml_table_unparsed(tbl, key), &ts) == 0);
-	if (ret.ok) {
-		ret.ok = !!(ret.u.ts = malloc(sizeof(*ret.u.ts)));
-		if (ret.ok)
-			*ret.u.ts = ts;
-	}
-	return ret;
-}
-
-static int parse_millisec(const char *p, const char **endp) {
-	int ret  = 0;
-	int unit = 100; /// unit in millisec
-	for (; '0' <= *p && *p <= '9'; p++, unit /= 10)
-		ret += (*p - '0') * unit;
-	*endp = p;
+	ret.ok = (toml_value_timestamp(toml_table_unparsed(tbl, key), &ret.u.ts) == 0);
 	return ret;
 }
