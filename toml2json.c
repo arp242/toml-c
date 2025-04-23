@@ -67,9 +67,8 @@ static void print_raw(const char *s) {
 			char off[15];
 			off[0] = 'Z';
 			off[1] = 0;
-			if (ts.tz > 0)
-				snprintf(off, 15, "%c%02d:%02d", '+', ts.tz / 60, ts.tz % 60);
-
+			if (ts.tz != 0)
+				snprintf(off, 15, "%c%02d:%02d", (ts.tz > 0 ? '+' : '-'), abs(ts.tz) / 60, abs(ts.tz) % 60);
 			printf("{\"type\": \"%s\",\"value\": \"%04d-%02d-%02dT%02d:%02d:%02d%s%s\"}",
 				(ts.kind == 'd' ? "datetime" : "datetime-local"),
 				ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, millisec,

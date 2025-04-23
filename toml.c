@@ -1333,12 +1333,16 @@ static int parse_millisec(const char *p, const char **endp) {
 }
 
 static bool scan_offset(const char *p, int *tz) {
-	int hour   = scan_digits(p, 2);
-	int minute = (hour >= 0 && p[2] == ':') ? scan_digits(p + 3, 2) : -1;
+	int sign   = p[0];
+	int hour   = scan_digits(p + 1, 2);
+	int minute = (hour >= 0 && p[3] == ':') ? scan_digits(p + 4, 2) : -1;
 	if (hour < -12 || hour > 14 || minute < 0 || minute > 59)
 		return false;
-	if (tz)
+	if (tz) {
 		*tz = hour*60 + minute;
+		if (sign == '-')
+			*tz = -(*tz);
+	}
 	return true;
 }
 
@@ -1513,9 +1517,9 @@ static int scan_string(context_t *ctx, char *p, toml_pos_t *pos, bool dotisspeci
 		if (p[0] == 'Z' || p[0] == 'z') {
 			p++;
 		} else if (p[0] == '+' || p[0] == '-') {
-			if (!scan_offset(++p, 0))
+			if (!scan_offset(p, 0))
 				return e_syntax(ctx, *pos, "invalid offset");
-			p += 5;
+			p += 6;
 		}
 
 		for (; p[-1] == ' '; p--) /// squeeze out any spaces at end of string
@@ -1712,7 +1716,7 @@ int toml_value_timestamp(toml_unparsed_t src_, toml_timestamp_t *ret) {
 			if (*p == 'Z' || *p == 'z')
 				p++;
 			else if (*p == '+' || *p == '-') {
-				if (!scan_offset(p + 1, &ret->tz))
+				if (!scan_offset(p, &ret->tz))
 					return -1;
 				p += 6;
 			}
