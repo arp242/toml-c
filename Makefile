@@ -3,7 +3,7 @@ PREFIX    = /usr/local
 FPIC      = -fPIC
 CFLAGS    = -std=c99 -Wall -Wextra -Wimplicit-fallthrough ${FPIC} -O2 -g
 SANITIZER = -fsanitize=address -fsanitize=undefined
-#COVERAGE  = -g -O0 --coverage -lgcov -fprofile-arcs -ftest-coverage
+#COVERAGE  = -g3 -Og --coverage -lgcov -fprofile-arcs -ftest-coverage
 
 HDRS   = toml.h
 SRCS   = toml.c

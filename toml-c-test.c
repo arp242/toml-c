@@ -1,37 +1,39 @@
 #include <stdlib.h>
 #include <string.h>
+
 #include "toml.h"
 
 int failed = 0;
 
-#define errorf(...) { \
-	failed = 1; \
-	fprintf(stderr, "FAIL: %s:%d: %s()\n\t", __FILE__, __LINE__, __func__); \
-	fprintf(stderr, __VA_ARGS__); \
-	fprintf(stderr, "\n"); \
-}
+#define errorf(...)                                                             \
+	{                                                                           \
+		failed = 1;                                                             \
+		fprintf(stderr, "FAIL: %s:%d: %s()\n\t", __FILE__, __LINE__, __func__); \
+		fprintf(stderr, __VA_ARGS__);                                           \
+		fprintf(stderr, "\n");                                                  \
+	}
 
-#define fatalf(...) { \
-	errorf(__VA_ARGS__); \
-	return; \
-}
+#define fatalf(...)          \
+	{                        \
+		errorf(__VA_ARGS__); \
+		return;              \
+	}
 
 #define streq(a, b) (strcmp(a, b) == 0)
 
 void test_toml_table_value(void) {
-	char errbuf[200];
-	toml_table_t *tbl = toml_parse(
-		"str   = 'xxx'\n"
-		"int   = 42\n"
-		"bool  = true\n"
-		"float = 6.666\n"
-		"ts    = 2012-01-02T15:16:17Z\n",
-		errbuf, sizeof(errbuf));
+	char          errbuf[200];
+	toml_table_t* tbl = toml_parse("str   = 'xxx'\n"
+	                               "int   = 42\n"
+	                               "bool  = true\n"
+	                               "float = 6.666\n"
+	                               "ts    = 2012-01-02T15:16:17Z\n",
+	                               errbuf, sizeof(errbuf));
 	if (!tbl)
 		fatalf("%s", errbuf);
 	int l = toml_table_len(tbl);
 	if (l != 5)
-		errorf("wrong table length: %d", l)
+		errorf("wrong table length: %d", l);
 
 	toml_value_t str = toml_table_string(tbl, "str");
 	if (!str.ok)
@@ -64,34 +66,33 @@ void test_toml_table_value(void) {
 	if (!ts.ok)
 		errorf("ts.ok not set");
 	char have[200];
+
+	// clang-format off
 	snprintf(have, 200, "'%c' %d-%02d-%02d %02d:%02d:%02d.%d TZ=%d",
 		ts.u.ts.kind, ts.u.ts.year, ts.u.ts.month, ts.u.ts.day, ts.u.ts.hour,
 		ts.u.ts.minute, ts.u.ts.second, ts.u.ts.millisec, ts.u.ts.tz);
+	// clang-format on
 	char want[200] = "'d' 2012-01-02 15:16:17.0 TZ=0";
 	if (!streq(have, want))
-		errorf("have: %s\n\twant: %s",have, want);
+		errorf("have: %s\n\twant: %s", have, want);
 
 	toml_free(tbl);
 }
 
 void test_toml_array_value(void) {
-	char errbuf[200];
-	toml_table_t *tbl = toml_parse(
-		"str   = ['xxx', \"yyy\"]\n"
-		"int   = [42, 43]\n"
-		"bool  = [true, false]\n"
-		"float = [6.666, 6.667]\n"
-		"ts    = [2012-01-02T15:16:17Z, 2013-02-03T16:17:18Z]\n",
-		errbuf, sizeof(errbuf));
+	char          errbuf[200];
+	toml_table_t* tbl = toml_parse("str   = ['xxx', \"yyy\"]\n"
+	                               "int   = [42, 43]\n"
+	                               "bool  = [true, false]\n"
+	                               "float = [6.666, 6.667]\n"
+	                               "ts    = [2012-01-02T15:16:17Z, 2013-02-03T16:17:18Z]\n",
+	                               errbuf, sizeof(errbuf));
 	if (!tbl)
 		fatalf("%s", errbuf);
-	int l = toml_table_len(tbl);
-	if (l != 5)
-		errorf("wrong table length: %d", l)
 
 	{
-		toml_array_t *arr = toml_table_array(tbl, "str");
-		toml_value_t str1 = toml_array_string(arr, 0);
+		toml_array_t* arr  = toml_table_array(tbl, "str");
+		toml_value_t  str1 = toml_array_string(arr, 0);
 		if (!str1.ok)
 			errorf("str1.ok not set");
 		if (!streq(str1.u.s, "xxx"))
@@ -111,23 +112,26 @@ void test_toml_array_value(void) {
 	}
 
 	{
-		toml_array_t *arr = toml_table_array(tbl, "ts");
-		toml_value_t ts1    = toml_array_timestamp(arr, 0);
-		char have[200];
+		toml_array_t* arr = toml_table_array(tbl, "ts");
+		toml_value_t  ts1 = toml_array_timestamp(arr, 0);
+		char          have[200];
+
+		// clang-format off
 		snprintf(have, 200, "'%c' %d-%02d-%02d %02d:%02d:%02d.%d TZ=%d",
 			ts1.u.ts.kind, ts1.u.ts.year, ts1.u.ts.month, ts1.u.ts.day, ts1.u.ts.hour,
 			ts1.u.ts.minute, ts1.u.ts.second, ts1.u.ts.millisec, ts1.u.ts.tz);
+		// clang-format on
 		char want[200] = "'d' 2012-01-02 15:16:17.0 TZ=0";
 		if (!streq(have, want))
-			errorf("have: %s\n\twant: %s",have, want);
+			errorf("have: %s\n\twant: %s", have, want);
 	}
 
 	toml_free(tbl);
 }
 
 void test_toml_table_string_unknown_value(void) {
-	char errbuf[200];
-	toml_table_t *tbl = toml_parse("a = 'a'", errbuf, sizeof(errbuf));
+	char          errbuf[200];
+	toml_table_t* tbl = toml_parse("a = 'a'", errbuf, sizeof(errbuf));
 	if (!tbl)
 		fatalf("%s", errbuf);
 

@@ -1,0 +1,31 @@
+# Real men use real tabs.
+IndentWidth: 4
+TabWidth: 4
+UseTab: 'ForIndentation'
+
+# Don't frob with line endings so much.
+ColumnLimit: 999
+#BinPackArguments: false
+#BinPackParameters: false
+AllowShortFunctionsOnASingleLine: 'None'
+BreakStringLiterals: false
+ReflowComments: false
+AllowShortCaseLabelsOnASingleLine: true
+AlignConsecutiveShortCaseStatements: {Enabled: true}
+AlignEscapedNewlines: 'Left'
+
+# Align asignments and declarations.
+AlignConsecutiveAssignments:  {Enabled: true, AlignCompound: true}
+AlignConsecutiveDeclarations: {Enabled: true, PadOperators: false}
+
+# Star next to the type name, as it's really part of the type.
+PointerAlignment: 'Left'
+
+# Indent nested pre-processer
+IndentPPDirectives: 'AfterHash'
+
+# Group local ".." includes, and put them after system <..> includes.
+IncludeBlocks: 'Regroup'
+IncludeCategories: [
+  {Regex: '^"', Priority: 99, SortPriority: 99},
+]
