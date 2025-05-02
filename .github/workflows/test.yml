@@ -8,12 +8,9 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: 'actions/setup-go@v5'
-      with: {go-version: '1.24'}
     - uses: 'actions/checkout@v4'
-
-    - run: 'go install github.com/toml-lang/toml-test/cmd/toml-test@main'
-
+    - {uses: 'actions/setup-go@v5', with: {go-version: '1.24'}}
+    - {uses: 'toml-lang/setup-toml-test@main', with: {decoder: 'toml2json', version: 'main'}}
     - if:  runner.os != 'Windows'
       run: 'make check CC=clang'
     - if:  runner.os == 'Windows'
