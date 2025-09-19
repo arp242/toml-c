@@ -697,7 +697,7 @@ static int valtype(const char* val) {
 	toml_timestamp_t ts;
 	if (*val == '\'' || *val == '"')
 		return 's';
-	if (toml_value_bool(val, false) == 0)
+	if (toml_value_bool(val, 0) == 0)
 		return 'b';
 	if (toml_value_int(val, 0) == 0)
 		return 'i';
