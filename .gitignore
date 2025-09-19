@@ -6,6 +6,7 @@
 *.gcda
 *.gcno
 *.gcov
+*.dSYM
 /toml2json
 /toml-c-test
 /libtoml.so.1.0
