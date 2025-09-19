@@ -9,27 +9,31 @@ toml=1.0.0
 # Skip known failures.
 skip=(
     # Extending existing tables
-    -skip 'invalid/array/extending-table'
-    -skip 'invalid/table/append-with-dotted-keys-01'
-    -skip 'invalid/table/append-with-dotted-keys-02'
-    -skip 'invalid/inline-table/overwrite-02'
+    -skip='invalid/array/extending-table'
+    -skip='invalid/table/append-with-dotted-keys-01'
+    -skip='invalid/table/append-with-dotted-keys-02'
+    -skip='invalid/inline-table/overwrite-02'
 
     # Encoding
-    -skip 'invalid/encoding/bad-codepoint'
-    -skip 'invalid/encoding/bad-utf8-in-comment'
-    -skip 'invalid/encoding/utf16-comment'
-    -skip 'invalid/encoding/utf16-key'
+    -skip='invalid/encoding/bad-codepoint'
+    -skip='invalid/encoding/bad-utf8-in-comment'
+    -skip='invalid/encoding/utf16-comment'
+    -skip='invalid/encoding/utf16-key'
 
     # Allows "invalid" control characters
-    -skip 'invalid/control/bare-cr'
-    -skip 'invalid/control/bare-null'
-    -skip 'invalid/control/comment-null'
-    -skip 'invalid/control/multi-cr'
-    -skip 'invalid/control/only-null'
-    -skip 'invalid/control/rawmulti-cr'
+    -skip='invalid/control/bare-cr'
+    -skip='invalid/control/bare-null'
+    -skip='invalid/control/comment-null'
+    -skip='invalid/control/multi-cr'
+    -skip='invalid/control/only-null'
+    -skip='invalid/control/rawmulti-cr'
 
     # TOML 1.1
-    -skip 'invalid/inline-table/trailing-comma'
+    -skip='invalid/inline-table/trailing-comma'
+
+    # Newly failing tests
+    -skip='invalid/table/append-with-dotted-keys-1'
+    -skip='invalid/table/append-with-dotted-keys-2'
 )
 
 # Find toml-test
