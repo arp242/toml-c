@@ -1,4 +1,4 @@
-C library for parsing TOML 1.0. Passes all of [TOML test suite].
+C library for parsing TOML 1.1. Passes all of [TOML test suite].
 
 This is a fork of https://github.com/cktan/tomlc99, as that didn't seem hugely
 maintained, and has a number of errors. This library isn't compatible.

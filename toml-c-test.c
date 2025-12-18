@@ -156,16 +156,8 @@ void test_error(void) {
 	if (!streq(errbuf, "at 1:14: unterminated quote (')"))
 		errorf("wrong error: %s", errbuf);
 
-	toml_parse("k = {\n}", errbuf, sizeof(errbuf));
-	if (!streq(errbuf, "at 1:6: newline not allowed in inline table"))
-		errorf("wrong error: %s", errbuf);
-
 	toml_parse("k = {{}}", errbuf, sizeof(errbuf));
 	if (!streq(errbuf, "at 1:6: expected a string"))
-		errorf("wrong error: %s", errbuf);
-
-	toml_parse("k = {b = 1\n}", errbuf, sizeof(errbuf));
-	if (!streq(errbuf, "at 1:11: newline not allowed in inline table"))
 		errorf("wrong error: %s", errbuf);
 
 	// e_keyexists errors

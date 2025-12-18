@@ -4,7 +4,7 @@
 # Run the toml-test compliance tests: https://github.com/toml-lang/toml-test
 
 decoder="./toml2json"
-toml=1.0.0
+toml=1.1.0
 
 # Skip known failures.
 skip=(
