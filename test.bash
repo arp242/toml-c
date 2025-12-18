@@ -54,4 +54,4 @@ if ! command -v "$tt" >/dev/null; then
 	exit 1
 fi
 
-"$tt" -toml="$toml" -skip-must-err ${skip[@]} "$@" -- "$decoder"
+"$tt" test -toml="$toml" -skip-must-err ${skip[@]} -decoder="$decoder" "$@"
