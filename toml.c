@@ -11,10 +11,10 @@
 
 #include "toml.h"
 
-#define ALIGN8(sz) (((sz) + 7) & ~7)
+#define ALIGN8(sz) (((sz) + 7llu) & ~7llu)
 #define calloc(x, y) error - forbidden - use CALLOC instead
 static void* CALLOC(size_t nmemb, size_t sz) {
-	int   nb = ALIGN8(sz) * nmemb;
+	size_t nb = ALIGN8(sz) * nmemb;
 	void* p  = malloc(nb);
 	if (p) {
 		memset(p, 0, nb);
@@ -26,10 +26,10 @@ static void* CALLOC(size_t nmemb, size_t sz) {
 #undef strdup
 #define strdup(x) error - forbidden - use STRDUP instead
 static char* STRDUP(const char* s) {
-	int   len = strlen(s);
-	char* p   = malloc(len + 1);
+	int   len = (int)strlen(s);
+	char* p   = malloc((size_t)len + 1);
 	if (p) {
-		memcpy(p, s, len);
+		memcpy(p, s, (size_t)len);
 		p[len] = 0;
 	}
 	return p;
@@ -61,31 +61,31 @@ int                 toml_value_timestamp(toml_unparsed_t s, toml_timestamp_t* re
 // Convert escape to UTF-8; return #bytes used in buf to encode the char, or -1
 // on error.
 // http://stackoverflow.com/questions/6240055/manually-converting-unicode-codepoints-into-utf-8-and-utf-16
-int read_unicode_escape(uint64_t code, char buf[6]) {
+static int read_unicode_escape(uint64_t code, char buf[6]) {
 	if (0xd800 <= code && code <= 0xdfff) /// UTF-16 surrogates
 		return -1;
 	if (0x10FFFF < code)
 		return -1;
 	if (code <= 0x7F) { /// 0x00000000 - 0x0000007F: 0xxxxxxx
-		buf[0] = (unsigned char)code;
+		buf[0] = (char)code;
 		return 1;
 	}
 	if (code <= 0x000007FF) { /// 0x00000080 - 0x000007FF: 110xxxxx 10xxxxxx
-		buf[0] = (unsigned char)(0xc0 | (code >> 6));
-		buf[1] = (unsigned char)(0x80 | (code & 0x3f));
+		buf[0] = (char)(0xc0 | (code >> 6));
+		buf[1] = (char)(0x80 | (code & 0x3f));
 		return 2;
 	}
 	if (code <= 0x0000FFFF) { /// 0x00000800 - 0x0000FFFF: 1110xxxx 10xxxxxx 10xxxxxx
-		buf[0] = (unsigned char)(0xe0 | (code >> 12));
-		buf[1] = (unsigned char)(0x80 | ((code >> 6) & 0x3f));
-		buf[2] = (unsigned char)(0x80 | (code & 0x3f));
+		buf[0] = (char)(0xe0 | (code >> 12));
+		buf[1] = (char)(0x80 | ((code >> 6) & 0x3f));
+		buf[2] = (char)(0x80 | (code & 0x3f));
 		return 3;
 	}
 	if (code <= 0x001FFFFF) { /// 0x00010000 - 0x001FFFFF: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-		buf[0] = (unsigned char)(0xf0 | (code >> 18));
-		buf[1] = (unsigned char)(0x80 | ((code >> 12) & 0x3f));
-		buf[2] = (unsigned char)(0x80 | ((code >> 6) & 0x3f));
-		buf[3] = (unsigned char)(0x80 | (code & 0x3f));
+		buf[0] = (char)(0xf0 | (code >> 18));
+		buf[1] = (char)(0x80 | ((code >> 12) & 0x3f));
+		buf[2] = (char)(0x80 | ((code >> 6) & 0x3f));
+		buf[3] = (char)(0x80 | (code & 0x3f));
 		return 4;
 	}
 	return -1;
@@ -135,52 +135,52 @@ static int next_token(context_t* ctx, bool dotisspecial);
 
 // Error reporting. Call when an error is detected. Always return -1.
 static int e_outofmemory(context_t* ctx, const char* fline) {
-	snprintf(ctx->errbuf, ctx->errbufsz, "ERROR: out of memory (%s)", fline);
+	snprintf(ctx->errbuf, (size_t)ctx->errbufsz, "ERROR: out of memory (%s)", fline);
 	return -1;
 }
 
 static int e_internal(context_t* ctx, const char* fline) {
-	snprintf(ctx->errbuf, ctx->errbufsz, "internal error (%s)", fline);
+	snprintf(ctx->errbuf, (size_t)ctx->errbufsz, "internal error (%s)", fline);
 	return -1;
 }
 
 static int e_syntax(context_t* ctx, toml_pos_t pos, const char* msg) {
-	snprintf(ctx->errbuf, ctx->errbufsz, "at %d:%d: %s", pos.line, pos.col, msg);
+	snprintf(ctx->errbuf, (size_t)ctx->errbufsz, "at %d:%d: %s", pos.line, pos.col, msg);
 	return -1;
 }
 
 static int e_keyexists(context_t* ctx, toml_pos_t pos) {
-	snprintf(ctx->errbuf, ctx->errbufsz, "at %d:%d: key already defined", pos.line, pos.col);
+	snprintf(ctx->errbuf, (size_t)ctx->errbufsz, "at %d:%d: key already defined", pos.line, pos.col);
 	return -1;
 }
 
 static void* expand(void* p, int sz, int newsz) {
-	void* s = malloc(newsz);
+	void* s = malloc((size_t)newsz);
 	if (!s)
 		return 0;
 
 	if (p) {
-		memcpy(s, p, sz);
+		memcpy(s, p, (size_t)sz);
 		free(p);
 	}
 	return s;
 }
 
 static void** expand_ptrarr(void** p, int n) {
-	void** s = malloc((n + 1) * sizeof(void*));
+	void** s = malloc((size_t)(n + 1) * sizeof(void*));
 	if (!s)
 		return 0;
 
 	s[n] = 0;
 	if (p) {
-		memcpy(s, p, n * sizeof(void*));
+		memcpy(s, p, (size_t)n * sizeof(void*));
 		free(p);
 	}
 	return s;
 }
 
 static toml_arritem_t* expand_arritem(toml_arritem_t* p, int n) {
-	toml_arritem_t* pp = expand(p, n * sizeof(*p), (n + 1) * sizeof(*p));
+	toml_arritem_t* pp = expand(p, (int)((size_t)n * sizeof(*p)), (int)((size_t)(n + 1) * sizeof(*p)));
 	if (!pp)
 		return 0;
 
@@ -204,7 +204,7 @@ static char* norm_lit_str(const char* src, int srclen, int* len, bool multiline,
 			char* x      = expand(dst, max, newmax);
 			if (!x) {
 				xfree(dst);
-				snprintf(errbuf, errbufsz, "out of memory");
+				snprintf(errbuf, (size_t)errbufsz, "out of memory");
 				return 0;
 			}
 			dst = x;
@@ -217,7 +217,7 @@ static char* norm_lit_str(const char* src, int srclen, int* len, bool multiline,
 		uint8_t l = u8length(sp);
 		if (l == 0) {
 			xfree(dst);
-			snprintf(errbuf, errbufsz, "invalid UTF-8 at byte pos %d", off);
+			snprintf(errbuf, (size_t)errbufsz, "invalid UTF-8 at byte pos %d", off);
 			return 0;
 		}
 		if (l > 1) {
@@ -225,7 +225,7 @@ static char* norm_lit_str(const char* src, int srclen, int* len, bool multiline,
 				char ch = *sp++;
 				if ((ch & 0x80) != 0x80) {
 					xfree(dst);
-					snprintf(errbuf, errbufsz, "invalid UTF-8 at byte pos %d", off);
+					snprintf(errbuf, (size_t)errbufsz, "invalid UTF-8 at byte pos %d", off);
 					return 0;
 				}
 				dst[off++] = ch;
@@ -238,7 +238,7 @@ static char* norm_lit_str(const char* src, int srclen, int* len, bool multiline,
 		if ((0 <= ch && ch <= 0x08) || (0x0a <= ch && ch <= 0x1f) || ch == 0x7f) {
 			if (!(multiline && (ch == '\r' || ch == '\n'))) {
 				xfree(dst);
-				snprintf(errbuf, errbufsz, "invalid char U+%04x", ch);
+				snprintf(errbuf, (size_t)errbufsz, "invalid char U+%04x", ch);
 				return 0;
 			}
 		}
@@ -267,7 +267,7 @@ static char* norm_basic_str(const char* src, int srclen, int* len, bool multilin
 			char* x      = expand(dst, max, newmax);
 			if (!x) {
 				xfree(dst);
-				snprintf(errbuf, errbufsz, "out of memory");
+				snprintf(errbuf, (size_t)errbufsz, "out of memory");
 				return 0;
 			}
 			dst = x;
@@ -280,7 +280,7 @@ static char* norm_basic_str(const char* src, int srclen, int* len, bool multilin
 		uint8_t l = u8length(sp);
 		if (l == 0) {
 			xfree(dst);
-			snprintf(errbuf, errbufsz, "invalid UTF-8 at byte pos %d", off);
+			snprintf(errbuf, (size_t)errbufsz, "invalid UTF-8 at byte pos %d", off);
 			return 0;
 		}
 		if (l > 1) {
@@ -288,7 +288,7 @@ static char* norm_basic_str(const char* src, int srclen, int* len, bool multilin
 				char ch = *sp++;
 				if ((ch & 0x80) != 0x80) {
 					xfree(dst);
-					snprintf(errbuf, errbufsz, "invalid UTF-8 at byte pos %d", off);
+					snprintf(errbuf, (size_t)errbufsz, "invalid UTF-8 at byte pos %d", off);
 					return 0;
 				}
 				dst[off++] = ch;
@@ -302,7 +302,7 @@ static char* norm_basic_str(const char* src, int srclen, int* len, bool multilin
 			if ((ch >= 0 && ch <= 0x08) || (ch >= 0x0a && ch <= 0x1f) || ch == 0x7f) {
 				if (!(multiline && (ch == '\r' || ch == '\n'))) {
 					xfree(dst);
-					snprintf(errbuf, errbufsz, "invalid char U+%04x", ch);
+					snprintf(errbuf, (size_t)errbufsz, "invalid char U+%04x", ch);
 					return 0;
 				}
 			}
@@ -313,7 +313,7 @@ static char* norm_basic_str(const char* src, int srclen, int* len, bool multilin
 
 		// TODO: unreachable, I think?
 		if (sp >= sq) { /// ch was backslash. we expect the escape char.
-			snprintf(errbuf, errbufsz, "last backslash is invalid");
+			snprintf(errbuf, (size_t)errbufsz, "last backslash is invalid");
 			xfree(dst);
 			return 0;
 		}
@@ -338,7 +338,7 @@ static char* norm_basic_str(const char* src, int srclen, int* len, bool multilin
 				// TODO: unreachable I think, as scan_string() already
 				// guarantees exactly 4 or 8 hex chars.
 				if (sp >= sq) {
-					snprintf(errbuf, errbufsz, "\\%c expected %d hex chars", ch, nhex);
+					snprintf(errbuf, (size_t)errbufsz, "\\%c expected %d hex chars", ch, nhex);
 					xfree(dst);
 					return 0;
 				}
@@ -352,15 +352,15 @@ static char* norm_basic_str(const char* src, int srclen, int* len, bool multilin
 					v = (ch ^ 0x20) - 'A' + 10;
 				// TODO: also unrechable, as per above.
 				if (v == -1) {
-					snprintf(errbuf, errbufsz, "invalid hex chars for \\u or \\U");
+					snprintf(errbuf, (size_t)errbufsz, "invalid hex chars for \\u or \\U");
 					xfree(dst);
 					return 0;
 				}
-				ucs = ucs * 16 + v;
+				ucs = ucs * 16 + (uint64_t)v;
 			}
 			int n = read_unicode_escape(ucs, &dst[off]);
 			if (n == -1) {
-				snprintf(errbuf, errbufsz, "illegal ucs code in \\u or \\U");
+				snprintf(errbuf, (size_t)errbufsz, "illegal ucs code in \\u or \\U");
 				xfree(dst);
 				return 0;
 			}
@@ -378,7 +378,7 @@ static char* norm_basic_str(const char* src, int srclen, int* len, bool multilin
 		default:
 			// TODO: unrechable, I think, as scan_string() already
 			// guarantees correct char.
-			snprintf(errbuf, errbufsz, "illegal escape char \\%c", ch);
+			snprintf(errbuf, (size_t)errbufsz, "illegal escape char \\%c", ch);
 			xfree(dst);
 			return 0;
 		}
@@ -405,9 +405,9 @@ static char* normalize_key(context_t* ctx, token_t strtok, int* keylen) {
 
 		char ebuf[80];
 		if (ch == '\'')
-			ret = norm_lit_str(sp, sq - sp, keylen, false, ebuf, sizeof(ebuf));
+			ret = norm_lit_str(sp, (int)(sq - sp), keylen, false, ebuf, sizeof(ebuf));
 		else
-			ret = norm_basic_str(sp, sq - sp, keylen, false, ebuf, sizeof(ebuf));
+			ret = norm_basic_str(sp, (int)(sq - sp), keylen, false, ebuf, sizeof(ebuf));
 		if (!ret) {
 			e_syntax(ctx, strtok.pos, ebuf);
 			return 0;
@@ -426,7 +426,7 @@ static char* normalize_key(context_t* ctx, token_t strtok, int* keylen) {
 		return 0;
 	}
 
-	if (!(ret = STRNDUP(sp, sq - sp))) { /// dup and return
+	if (!(ret = STRNDUP(sp, (size_t)(sq - sp)))) { /// dup and return
 		e_outofmemory(ctx, FLINE);
 		return 0;
 	}
@@ -756,7 +756,7 @@ static int parse_array(context_t* ctx, toml_array_t* arr) {
 			if (!newval)
 				return e_outofmemory(ctx, FLINE);
 
-			if (!(newval->val = STRNDUP(val, vlen)))
+			if (!(newval->val = STRNDUP(val, (size_t)vlen)))
 				return e_outofmemory(ctx, FLINE);
 
 			newval->valtype = valtype(newval->val);
@@ -874,7 +874,7 @@ static int parse_keyval(context_t* ctx, toml_table_t* tbl) {
 		token_t val = ctx->tok;
 
 		assert(keyval->val == 0);
-		if (!(keyval->val = STRNDUP(val.ptr, val.len)))
+		if (!(keyval->val = STRNDUP(val.ptr, (size_t)val.len)))
 			return e_outofmemory(ctx, FLINE);
 
 		if (next_token(ctx, true))
@@ -1182,7 +1182,7 @@ toml_table_t* toml_parse_file(FILE* fp, char* errbuf, int errbufsz) {
 			int   xsz = bufsz + inc;
 			char* x   = expand(buf, bufsz, xsz);
 			if (!x) {
-				snprintf(errbuf, errbufsz, "out of memory");
+				snprintf(errbuf, (size_t)errbufsz, "out of memory");
 				xfree(buf);
 				return 0;
 			}
@@ -1191,9 +1191,9 @@ toml_table_t* toml_parse_file(FILE* fp, char* errbuf, int errbufsz) {
 		}
 
 		errno = 0;
-		int n = fread(buf + off, 1, bufsz - off, fp);
+		int n = (int)fread(buf + off, 1, (size_t)(bufsz - off), fp);
 		if (ferror(fp)) {
-			snprintf(errbuf, errbufsz, "%s", (errno ? strerror(errno) : "Error reading file"));
+			snprintf(errbuf, (size_t)errbufsz, "%s", (errno ? strerror(errno) : "Error reading file"));
 			xfree(buf);
 			return 0;
 		}
@@ -1205,7 +1205,7 @@ toml_table_t* toml_parse_file(FILE* fp, char* errbuf, int errbufsz) {
 		int   xsz = bufsz + 1;
 		char* x   = expand(buf, bufsz, xsz);
 		if (!x) {
-			snprintf(errbuf, errbufsz, "out of memory");
+			snprintf(errbuf, (size_t)errbufsz, "out of memory");
 			xfree(buf);
 			return 0;
 		}
@@ -1366,7 +1366,7 @@ static int scan_string(context_t* ctx, char* p, toml_pos_t* pos, bool dotisspeci
 			}
 			break;
 		}
-		set_token(ctx, MSTRING, *pos, orig, q + 3 - orig);
+		set_token(ctx, MSTRING, *pos, orig, (int)(q + 3 - orig));
 		return 0;
 	}
 
@@ -1432,7 +1432,7 @@ static int scan_string(context_t* ctx, char* p, toml_pos_t* pos, bool dotisspeci
 		if (hexreq)
 			return e_syntax(ctx, *pos, "expected more hex char");
 
-		set_token(ctx, MSTRING, *pos, orig, q + 3 - orig);
+		set_token(ctx, MSTRING, *pos, orig, (int)(q + 3 - orig));
 		return 0;
 	}
 
@@ -1442,7 +1442,7 @@ static int scan_string(context_t* ctx, char* p, toml_pos_t* pos, bool dotisspeci
 			pos->col++;
 		if (*p != '\'')
 			return e_syntax(ctx, *pos, "unterminated quote (')");
-		set_token(ctx, STRING, *pos, orig, p + 1 - orig);
+		set_token(ctx, STRING, *pos, orig, (int)(p + 1 - orig));
 		return 0;
 	}
 
@@ -1488,7 +1488,7 @@ static int scan_string(context_t* ctx, char* p, toml_pos_t* pos, bool dotisspeci
 		if (*p != '"')
 			return e_syntax(ctx, *pos, "unterminated quote (\")");
 
-		set_token(ctx, STRING, *pos, orig, p + 1 - orig);
+		set_token(ctx, STRING, *pos, orig, (int)(p + 1 - orig));
 		return 0;
 	}
 
@@ -1496,14 +1496,14 @@ static int scan_string(context_t* ctx, char* p, toml_pos_t* pos, bool dotisspeci
 	if (!dotisspecial && scan_time(p, 0, 0, 0)) {
 		p += strspn(p, "0123456789:"); /// forward thru the time.
 		if (p[0] == '.') {             /// Subseconds
-			int n = strspn(++p, "0123456789");
+			int n = (int)strspn(++p, "0123456789");
 			if (n == 0)
 				return e_syntax(ctx, *pos, "extra chars after '.'");
 			p += n;
 		}
 		for (; p[-1] == ' '; p--) /// squeeze out any spaces at end of string
 			;
-		set_token(ctx, STRING, *pos, orig, p - orig); /// tokenize
+		set_token(ctx, STRING, *pos, orig, (int)(p - orig)); /// tokenize
 		return 0;
 	}
 
@@ -1514,7 +1514,7 @@ static int scan_string(context_t* ctx, char* p, toml_pos_t* pos, bool dotisspeci
 			p++;
 			p += strspn(p, "0123456789:");
 			if (p[0] == '.') { /// Subseconds
-				int n = strspn(++p, "0123456789");
+				int n = (int)strspn(++p, "0123456789");
 				if (n == 0)
 					return e_syntax(ctx, *pos, "extra chars after '.'");
 				p += n;
@@ -1532,7 +1532,7 @@ static int scan_string(context_t* ctx, char* p, toml_pos_t* pos, bool dotisspeci
 
 		for (; p[-1] == ' '; p--) /// squeeze out any spaces at end of string
 			;
-		set_token(ctx, STRING, *pos, orig, p - orig); /// tokenize
+		set_token(ctx, STRING, *pos, orig, (int)(p - orig)); /// tokenize
 		return 0;
 	}
 
@@ -1550,7 +1550,7 @@ static int scan_string(context_t* ctx, char* p, toml_pos_t* pos, bool dotisspeci
 		break;
 	}
 
-	set_token(ctx, STRING, *pos, orig, p - orig);
+	set_token(ctx, STRING, *pos, orig, (int)(p - orig));
 	return 0;
 }
 
@@ -1665,7 +1665,7 @@ toml_table_t* toml_array_table(const toml_array_t* arr, int idx) {
 	return (0 <= idx && idx < arr->nitem) ? arr->item[idx].tbl : 0;
 }
 
-bool is_leap(int y) {
+static bool is_leap(int y) {
 	return y % 4 == 0 && (y % 100 != 0 || y % 400 == 0);
 }
 
@@ -1807,7 +1807,7 @@ int toml_value_int(toml_unparsed_t src, int64_t* ret_) {
 				return -1;
 			continue; /// skip _
 		}
-		*p++ = ch;
+		*p++ = (char)ch;
 	}
 
 	if (*s || p == q) /// if not at end-of-string or we ran out of buffer ...
@@ -1869,7 +1869,7 @@ int toml_value_double(toml_unparsed_t src, double* ret_) {
 			return -1;
 		if (ch == 'e' && s[0] == '_') /// disallow e_
 			return -1;
-		*p++ = ch;
+		*p++ = (char)ch;
 	}
 	if (*s || p == q)
 		return -1; /// reached end of string or buffer is full?
@@ -1898,7 +1898,7 @@ int toml_value_string(toml_unparsed_t src, char** ret, int* len) {
 
 	/// First char must be a s-quote or d-quote
 	int qchar  = src[0];
-	int srclen = strlen(src);
+	int srclen = (int)strlen(src);
 	if (!(qchar == '\'' || qchar == '"')) {
 		return -1;
 	}
@@ -1928,9 +1928,9 @@ int toml_value_string(toml_unparsed_t src, char** ret, int* len) {
 	///     sq points to one char beyond last valid char.
 	///     string len is (sq - sp).
 	if (qchar == '\'')
-		*ret = norm_lit_str(sp, sq - sp, len, multiline, 0, 0);
+		*ret = norm_lit_str(sp, (int)(sq - sp), len, multiline, 0, 0);
 	else
-		*ret = norm_basic_str(sp, sq - sp, len, multiline, 0, 0);
+		*ret = norm_basic_str(sp, (int)(sq - sp), len, multiline, 0, 0);
 	return *ret ? 0 : -1;
 }
 

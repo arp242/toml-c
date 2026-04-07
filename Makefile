@@ -1,7 +1,7 @@
 CC        = cc
 PREFIX    = /usr/local
 FPIC      = -fPIC
-CFLAGS    = -std=c99 -Wall -Wextra -Wimplicit-fallthrough ${FPIC} -O2 -g
+CFLAGS    = -std=c99 -Wall -Wextra -Wimplicit-fallthrough -Wconversion ${FPIC} -O2 -g
 SANITIZER = -fsanitize=address -fsanitize=undefined
 #COVERAGE  = -g3 -Og --coverage -lgcov -fprofile-arcs -ftest-coverage
 
