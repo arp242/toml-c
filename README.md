@@ -19,7 +19,7 @@ This can be used in two ways: as a library or in "header only mode":
 
 Usage
 -----
-See `toml.h` and the `example` directory.
+See `toml.h` and the `example` directory. Or alternatively the documentation in `wiki`.
 
 Testing
 -------
