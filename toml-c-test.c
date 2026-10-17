@@ -166,11 +166,71 @@ void test_error(void) {
 		errorf("wrong error: %s", errbuf);
 }
 
+void test_inline_table_extension(void) {
+	char          errbuf[200];
+	toml_table_t* tbl = toml_parse("a = {}\n[a.b]\nx = 1\n", errbuf, sizeof(errbuf));
+	if (tbl)
+		errorf("accepted extension of an inline table");
+	toml_free(tbl);
+}
+
+void test_static_array_extension(void) {
+	char          errbuf[200];
+	toml_table_t* tbl = toml_parse("a = [{}]\n[[a]]\nx = 1\n", errbuf, sizeof(errbuf));
+	if (tbl)
+		errorf("accepted append to a statically defined array");
+	toml_free(tbl);
+}
+
+void test_dotted_extension_of_explicit_table(void) {
+	char          errbuf[200];
+	toml_table_t* tbl = toml_parse("[a.b]\nx = 1\n[a]\nb.y = 2\n", errbuf, sizeof(errbuf));
+	if (tbl)
+		errorf("accepted dotted extension of a header-defined table");
+	toml_free(tbl);
+}
+
+void test_inline_table_newline_before_comma(void) {
+	char          errbuf[200];
+	toml_table_t* tbl = toml_parse("x = { a = 1\n, b = 2 }\n", errbuf, sizeof(errbuf));
+	if (!tbl)
+		fatalf("%s", errbuf);
+
+	toml_table_t* x = toml_table_table(tbl, "x");
+	if (!x) {
+		toml_free(tbl);
+		fatalf("missing table x");
+	}
+	toml_value_t a = toml_table_int(x, "a");
+	toml_value_t b = toml_table_int(x, "b");
+	if (!a.ok || a.u.i != 1 || !b.ok || b.u.i != 2)
+		errorf("incorrect inline table values");
+	toml_free(tbl);
+}
+
+void test_multiline_string_ending_in_backslash(void) {
+	char          errbuf[200];
+	toml_table_t* tbl = toml_parse("x = \"\"\"abc\\\\\"\"\"\n", errbuf, sizeof(errbuf));
+	if (!tbl)
+		fatalf("%s", errbuf);
+
+	toml_value_t x = toml_table_string(tbl, "x");
+	if (!x.ok || x.u.sl != 4 || !streq(x.u.s, "abc\\"))
+		errorf("expected abc followed by one backslash");
+	free(x.u.s);
+	toml_free(tbl);
+}
+
 int main(void) {
 	test_toml_table_value();
 	test_toml_array_value();
 	test_toml_table_string_unknown_value();
 	test_error();
+	test_inline_table_extension();
+	test_static_array_extension();
+	test_dotted_extension_of_explicit_table();
+	test_inline_table_newline_before_comma();
+	test_multiline_string_ending_in_backslash();
 
 	printf("%s: %s\n", __FILE__, failed ? "FAIL" : "PASS");
 	return failed;
